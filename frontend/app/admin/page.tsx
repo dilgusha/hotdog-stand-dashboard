@@ -210,7 +210,7 @@ export default function AdminPage() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{getDailyRevenue()}₽</div>
+                  <div className="text-2xl font-bold text-green-600">{getDailyRevenue()}₼</div>
                 </CardContent>
               </Card>
 
@@ -220,7 +220,7 @@ export default function AdminPage() {
                   <CalendarDays className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">{getMonthlyRevenue()}₽</div>
+                  <div className="text-2xl font-bold text-blue-600">{getMonthlyRevenue()}₼</div>
                 </CardContent>
               </Card>
 
@@ -230,7 +230,7 @@ export default function AdminPage() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">{getTotalRevenue()}₽</div>
+                  <div className="text-2xl font-bold text-purple-600">{getTotalRevenue()}₼</div>
                 </CardContent>
               </Card>
             </div>
@@ -252,7 +252,7 @@ export default function AdminPage() {
                             <p className="text-sm text-gray-600">Сотрудник: {order.employee}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-green-600">{order.total}₽</p>
+                            <p className="font-bold text-green-600">{order.total}₼</p>
                             <p className="text-sm text-gray-600">
                               {new Date(order.timestamp).toLocaleString('ru-RU')}
                             </p>
@@ -307,7 +307,7 @@ export default function AdminPage() {
                               ))}
                             </div>
                           </TableCell>
-                          <TableCell className="font-bold text-green-600">{order.total}₽</TableCell>
+                          <TableCell className="font-bold text-green-600">{order.total}₼</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -356,7 +356,7 @@ export default function AdminPage() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="price">Цена (₽)</Label>
+                          <Label htmlFor="price">Цена (₼)</Label>
                           <Input
                             id="price"
                             type="number"
@@ -404,7 +404,7 @@ export default function AdminPage() {
                           <TableCell>
                             <Badge variant="outline">{getCategoryName(item.category)}</Badge>
                           </TableCell>
-                          <TableCell className="font-bold">{item.price}₽</TableCell>
+                          <TableCell className="font-bold">{item.price}₼</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
                               <Dialog>
@@ -440,7 +440,7 @@ export default function AdminPage() {
                                         />
                                       </div>
                                       <div>
-                                        <Label htmlFor="editPrice">Цена (₽)</Label>
+                                        <Label htmlFor="editPrice">Цена (₼)</Label>
                                         <Input
                                           id="editPrice"
                                           type="number"

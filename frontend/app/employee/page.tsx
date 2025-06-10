@@ -214,7 +214,7 @@ export default function EmployeePage() {
 
     toast({
       title: "Заказ добавлен",
-      description: `Заказ на сумму ${total}₽ успешно создан`,
+      description: `Заказ на сумму ${total}₼ успешно создан`,
     })
     setCart([])
   }
@@ -280,7 +280,7 @@ export default function EmployeePage() {
                             <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                               <div className="flex justify-between items-start mb-2">
                                 <h3 className="font-medium">{item.name}</h3>
-                                <span className="font-bold text-green-600">{item.price}₽</span>
+                                <span className="font-bold text-green-600">{item.price}₼</span>
                               </div>
                               <p className="text-sm text-gray-600 mb-3">{item.description}</p>
                               <Button onClick={() => addToCart(item)} size="sm" className="w-full">
@@ -319,7 +319,7 @@ export default function EmployeePage() {
                                     return sum + (addition?.price || 0)
                                   }, 0)) *
                                   item.quantity}
-                                ₽
+                                ₼
                               </span>
                             </div>
 
@@ -344,7 +344,7 @@ export default function EmployeePage() {
                                       className="cursor-pointer text-xs"
                                       onClick={() => toggleAddition(item.id, addition.name)}
                                     >
-                                      {addition.name} (+{addition.price}₽)
+                                      {addition.name} (+{addition.price}₼)
                                     </Badge>
                                   ))}
                                 </div>
@@ -356,7 +356,7 @@ export default function EmployeePage() {
                         <Separator />
                         <div className="flex justify-between items-center font-bold text-lg">
                           <span>Итого:</span>
-                          <span className="text-green-600">{total}₽</span>
+                          <span className="text-green-600">{total}₼</span>
                         </div>
 
                         <Button onClick={submitOrder} className="w-full" size="lg">
