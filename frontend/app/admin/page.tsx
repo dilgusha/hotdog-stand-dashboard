@@ -182,7 +182,7 @@ export default function AdminPage() {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">
-                Привет, {user.firstName}!
+                Привет, {user.name}!
               </span>
               <Button variant="outline" size="sm" onClick={logout}>
                 <LogOut className="h-4 w-4 mr-2" />

@@ -17,6 +17,7 @@
     "class-validator": "^0.14.2",
     "cors": "^2.8.5",
     "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.0",
     "typeorm": "^0.3.24"
   },
   "devDependencies": {

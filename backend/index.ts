@@ -9,7 +9,10 @@ const app = express();
 const port = Number(appConfig.PORT) || 5000; // Use env port or default to 5000
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true,
+}));
 app.use(bodyParser.json());
 app.use(express.json());
 app.use("/api", routes);

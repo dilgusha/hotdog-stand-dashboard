@@ -207,7 +207,7 @@ export default function EmployeePage() {
       items: cart,
       total,
       timestamp: new Date().toISOString(),
-      employee: user.firstName + " " + user.lastName,
+      employee: user.name 
     }
     orders.push(newOrder)
     localStorage.setItem("orders", JSON.stringify(orders))
@@ -247,7 +247,7 @@ export default function EmployeePage() {
               </Badge>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Привет, {user.firstName}!</span>
+              <span className="text-sm text-gray-600">Привет, {user.name}!</span>
               <Button variant="outline" size="sm" onClick={logout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Выйти
