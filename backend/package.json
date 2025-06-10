@@ -16,7 +16,8 @@
     "body-parser": "^2.2.0",
     "class-validator": "^0.14.2",
     "cors": "^2.8.5",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "typeorm": "^0.3.24"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

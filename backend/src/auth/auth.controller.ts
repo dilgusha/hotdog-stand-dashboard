@@ -8,7 +8,7 @@ const authService = new AuthService();
 const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const dto = new CreateUserDTO();
-    dto.username = req.body.username;
+    dto.name = req.body.name;
     dto.password = req.body.password;
 
     const errors = await validate(dto);
@@ -30,11 +30,11 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username, password } = req.body;
-    const result = await authService.login(username, password);
+    const { name, password } = req.body;
+    const result = await authService.login(name, password);
     res.status(201).json(result);
   } catch (error) {
-    res.status(error instanceof Error && error.message === "Invalid username or password" ? 401 : 500).json({
+    res.status(error instanceof Error && error.message === "Invalid name or password" ? 401 : 500).json({
       message: error instanceof Error ? error.message : "Something went wrong",
       error: error instanceof Error ? error.message : error,
     });

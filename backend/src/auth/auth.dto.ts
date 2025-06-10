@@ -1,11 +1,11 @@
 import { IsDefined, IsString, MaxLength, MinLength } from "class-validator";
 
 export class CreateUserDTO {
-  @IsDefined({ message: "Username is required" })
+  @IsDefined({ message: "name is required" })
   @IsString()
-  @MaxLength(150, { message: "Username is too long" })
-  @MinLength(3, { message: "Username must be at least 3 characters" })
-  username: string;
+  @MaxLength(150, { message: "name is too long" })
+  @MinLength(3, { message: "name must be at least 3 characters" })
+  name: string;
 
   @IsDefined({ message: "Password is required" })
   @IsString()
