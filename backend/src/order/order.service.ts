@@ -142,10 +142,6 @@ export class OrderService {
         throw new NotFoundException(`Product with ID ${item.productId} not found`);
       }
 
-      if (!product.isAvailable) {
-        throw new BadRequestException(`Product ${product.name} is not available`);
-      }
-
       let customizations: Customization[] = [];
       let customizationPrice = 0;
 

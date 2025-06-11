@@ -15,7 +15,4 @@ export class Product extends CommonEntity {
 
   @Column({ type: "text" })
   description: string;
-
-  @Column({ type: "boolean", default: true })
-  isAvailable: boolean;
 }
