@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authRoutes } from "../auth/auth.routes";
+import { authRoutes } from "../api/auth/auth.routes";
 export const routes = Router();
 
 routes.use("/auth", authRoutes);

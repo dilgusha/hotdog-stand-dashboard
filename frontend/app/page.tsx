@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { log } from "console"
 
 export default function AuthPage() {
   const [loginData, setLoginData] = useState({ name: "", password: "" })
@@ -36,8 +37,17 @@ export default function AuthPage() {
       }
 
       const data = await res.json()
+      console.log(data);
+      
       localStorage.setItem("user", JSON.stringify(data))
-      router.push("/employee") // və ya /admin
+      // router.push("/employee") // və ya /admin
+      console.log(data.role);
+      
+     if (data.role === "ADMIN") {
+      router.push("/admin");  // Admin səhifəsinə yönləndiririk
+    } else {
+      router.push("/employee");  // Worker səhifəsinə yönləndiririk
+    }
     } catch (err) {
       toast({
         title: "Server xətası",

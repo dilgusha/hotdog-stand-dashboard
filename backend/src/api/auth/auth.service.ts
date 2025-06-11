@@ -1,8 +1,8 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { User } from "../models/User.model"
+import { User } from "../../models/User.model"
 import { CreateUserDTO } from "./auth.dto";
-import { appConfig } from "../config/consts";
+import { appConfig } from "../../config/consts";
 
 export class AuthService {
   async register(dto: CreateUserDTO) {

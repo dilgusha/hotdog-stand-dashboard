@@ -1,14 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Order } from '../models/Order.model';
-import { OrderItem } from '../models/OrderItem.model';
-import { Product } from '../models/Product.model';
-import { Customization } from '../models/Customization.model';
-import { User } from '../models/User.model';
-import { Inventory } from '../models/Inventory.model';
-import { Recipe } from '../models/Recipe.model';
-import { Statistics } from '../models/Statistics.model';
+import { Order } from '../../models/Order.model';
+import { OrderItem } from '../../models/OrderItem.model';
+import { Product } from '../../models/Product.model';
+import { Customization } from '../../models/Customization.model';
+import { User } from '../../models/User.model';
+import { Inventory } from '../../models/Inventory.model';
+import { Recipe } from '../../models/Recipe.model';
+import { Statistics } from '../../models/Statistics.model';
 import { CreateOrderDto, CreateOrderItemDto, GetOrdersQueryDto, OrderResponseDto } from './order.dto';
 
 
