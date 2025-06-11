@@ -13,7 +13,7 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
 
     const errors = await validate(dto);
     if (errors.length > 0) {
-      res.status(422).json("Unprocessable error")
+      res.status(422).json("Необрабатываемая ошибка")
       return;
     }
 
@@ -22,7 +22,7 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
     next();
   } catch (error) {
     res.status(500).json({
-      message: "Something went wrong",
+      message: "Что-то пошло не так",
       error: error instanceof Error ? error.message : error,
     });
   }
@@ -34,8 +34,8 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const result = await authService.login(name, password);
     res.status(201).json(result);
   } catch (error) {
-    res.status(error instanceof Error && error.message === "Invalid name or password" ? 401 : 500).json({
-      message: error instanceof Error ? error.message : "Something went wrong",
+    res.status(error instanceof Error && error.message === "Неверное имя или пароль" ? 401 : 500).json({
+      message: error instanceof Error ? error.message : "Что-то пошло не так",
       error: error instanceof Error ? error.message : error,
     });
   }
@@ -44,5 +44,4 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 export const AuthController = () => ({
   register,
   login,
-
 });

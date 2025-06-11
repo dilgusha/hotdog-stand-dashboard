@@ -1,10 +1,8 @@
-import { Column, Entity, JoinTable, ManyToMany, OneToMany, Unique } from "typeorm";
+import { Column, Entity, OneToMany} from "typeorm";
 import { CommonEntity } from "./Common.model";
+import { ERoleType } from "../common/enum/user-role.enum";
+import { Order } from "./Order.model";
 
-export enum ERoleType {
-    USER = "USER",
-    ADMIN = "ADMIN",
-}
 
 @Entity({ name: "users" })
 export class User extends CommonEntity {
@@ -20,5 +18,8 @@ export class User extends CommonEntity {
     default: ERoleType.USER,
   })
   role: ERoleType;
+
+  @OneToMany(() => Order, (order) => order.createdBy)
+  orders: Order[]; 
 
 }

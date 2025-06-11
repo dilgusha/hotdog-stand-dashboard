@@ -10,7 +10,7 @@ export class AuthService {
 
     const existingUser = await User.findOne({ where: { name } });
     if (existingUser) {
-      throw new Error("This name is already taken");
+      throw new Error("Это имя уже занято");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -31,12 +31,12 @@ export class AuthService {
   async login(name: string, password: string) {
     const user = await User.findOne({ where: { name } });
     if (!user) {
-      throw new Error("Invalid name or password");
+      throw new Error("Неверное имя или пароль");
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      throw new Error("Invalid name or password");
+      throw new Error("Неверное имя или пароль");
     }
 
     const jwt_payload = { sub: user.id };
@@ -57,7 +57,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error("Пользователь не найден");
     }
 
     return user;

@@ -1,22 +1,22 @@
 import {
-    PrimaryGeneratedColumn,
-    CreateDateColumn,
-    UpdateDateColumn,
-    DeleteDateColumn,
-    BaseEntity,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  BaseEntity,
 } from "typeorm";
 
 
 export class CommonEntity extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @CreateDateColumn({ type: "timestamp" })
-    created_at: Date;
+  @CreateDateColumn({ type: "datetime" })
+  created_at: Date;
 
-    @UpdateDateColumn({ type: "timestamp" })
-    updated_at: Date;
+  @UpdateDateColumn({ type: "datetime" })
+  updated_at: Date;
 
-    @DeleteDateColumn({ type: "timestamp" })
-    deleted_at: Date;
+  @DeleteDateColumn({ type: "datetime" })
+  deleted_at: Date;
 }
