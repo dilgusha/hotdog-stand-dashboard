@@ -30,7 +30,7 @@ export class OrderItemResponseDto {
     productName: string;
     quantity: number;
     unitPrice: number;
-    totalPrice: number;
+    price: number;
     customizations: {
         id: number;
         name: string;

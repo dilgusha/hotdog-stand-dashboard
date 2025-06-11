@@ -47,7 +47,7 @@ export class OrderService {
 
         const order = this.orderRepository.create({
             createdBy: user,
-            totalAmount: orderItemsData.reduce((sum, item) => sum + item.totalPrice, 0),
+            totalAmount: orderItemsData.reduce((sum, item) => sum + item.price, 0),
         });
 
         const savedOrder = await this.orderRepository.save(order);
@@ -59,7 +59,7 @@ export class OrderService {
                 product: itemData.product,
                 quantity: itemData.quantity,
                 unitPrice: itemData.unitPrice,
-                totalPrice: itemData.totalPrice,
+                price: itemData.price,
                 customizations: itemData.customizations,
             });
             orderItems.push(await this.orderItemRepository.save(orderItem));
@@ -134,39 +134,39 @@ export class OrderService {
     }
 
     private async validateAndCalculateOrderItems(items: CreateOrderItemDto[]) {
-    const orderItemsData = [];
+        const orderItemsData = [];
 
-    for (const item of items) {
-      const product = await this.productRepository.findOne({ where: { id: item.productId } });
-      if (!product) {
-        throw new NotFoundException(`Product with ID ${item.productId} not found`);
-      }
+        for (const item of items) {
+            const product = await this.productRepository.findOne({ where: { id: item.productId } });
+            if (!product) {
+                throw new NotFoundException(`Product with ID ${item.productId} not found`);
+            }
 
-      let customizations: Customization[] = [];
-      let customizationPrice = 0;
+            let customizations: Customization[] = [];
+            let customizationPrice = 0;
 
-      if (item.customizationIds && item.customizationIds.length > 0) {
-        customizations = await this.customizationRepository.findByIds(item.customizationIds);
-        if (customizations.length !== item.customizationIds.length) {
-          throw new NotFoundException('One or more customizations not found');
+            if (item.customizationIds && item.customizationIds.length > 0) {
+                customizations = await this.customizationRepository.findByIds(item.customizationIds);
+                if (customizations.length !== item.customizationIds.length) {
+                    throw new NotFoundException('One or more customizations not found');
+                }
+                customizationPrice = customizations.reduce((sum, custom) => sum + Number(custom.price), 0);
+            }
+
+            const unitPrice = Number(product.price) + customizationPrice;
+            const price = unitPrice * item.quantity;
+
+            orderItemsData.push({
+                product,
+                quantity: item.quantity,
+                unitPrice,
+                price,
+                customizations,
+            });
         }
-        customizationPrice = customizations.reduce((sum, custom) => sum + Number(custom.price), 0);
-      }
 
-      const unitPrice = Number(product.price) + customizationPrice;
-      const totalPrice = unitPrice * item.quantity;
-
-      orderItemsData.push({
-        product,
-        quantity: item.quantity,
-        unitPrice,
-        totalPrice,
-        customizations,
-      });
+        return orderItemsData;
     }
-
-    return orderItemsData;
-  }
 
 
     private async deductInventory(orderItemsData: any[]) {
@@ -242,7 +242,7 @@ export class OrderService {
                 currentPopularItems.push(productName);
             }
         }
-        statistics.popularItems = currentPopularItems.slice(0, 10); 
+        statistics.popularItems = currentPopularItems.slice(0, 10);
 
         const todayStr = today.toISOString().split('T')[0];
         const revenueByDay = statistics.revenueByDay || [];
@@ -257,7 +257,7 @@ export class OrderService {
             revenueByDay.push(`${todayStr}:${order.totalAmount}`);
         }
 
-        statistics.revenueByDay = revenueByDay.slice(-30); 
+        statistics.revenueByDay = revenueByDay.slice(-30);
 
         await this.statisticsRepository.save(statistics);
     }
@@ -275,7 +275,7 @@ export class OrderService {
                 productName: item.product.name,
                 quantity: item.quantity,
                 unitPrice: Number(item.unitPrice),
-                totalPrice: Number(item.totalPrice),
+                price: Number(item.price),
                 customizations: (item.customizations || []).map(custom => ({
                     id: custom.id,
                     name: custom.name,

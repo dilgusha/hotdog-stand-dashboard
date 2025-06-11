@@ -21,7 +21,7 @@ export class OrderItem extends CommonEntity {
   unitPrice: number;
 
   @Column({ type: "decimal", precision: 6, scale: 2 })
-  totalPrice: number;
+  price: number;
 
    @ManyToMany(() => Customization)
    @JoinTable({
