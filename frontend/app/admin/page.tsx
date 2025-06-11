@@ -48,6 +48,7 @@ export default function AdminPage() {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({})
   const [isAddingItem, setIsAddingItem] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   const initialMenuItems: MenuItem[] = [
@@ -70,24 +71,66 @@ export default function AdminPage() {
   ]
 
   useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (!userData) {
-      router.push("/")
-      return
-    }
-    const parsedUser = JSON.parse(userData)
-    if (parsedUser.role !== "admin") {
-      router.push("/employee")
-      return
-    }
-    setUser(parsedUser)
+    const verifyUser = async () => {
+      const userData = localStorage.getItem("user")
+      if (!userData) {
+        toast({
+          title: "Требуется вход",
+          description: "Пожалуйста, войдите в систему.",
+          variant: "destructive",
+        })
+        router.push("/")
+        return
+      }
 
-    // Загружаем заказы и меню
-    const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]")
-    const savedMenu = JSON.parse(localStorage.getItem("menuItems") || "[]")
-    
-    setOrders(savedOrders)
-    setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems)
+      const parsedUser = JSON.parse(userData)
+      const token = parsedUser.access_token
+
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/verify", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!res.ok) {
+          throw new Error("Недействительный токен")
+        }
+
+        const data = await res.json()
+        if (data.role !== "ADMIN") {
+          toast({
+            title: "Доступ запрещен",
+            description: "Эта страница только для администраторов.",
+            variant: "destructive",
+          })
+          router.push(data.role === "EMPLOYEE" ? "/employee" : "/")
+          return
+        }
+
+        setUser(data)
+
+        // Load orders and menu from backend or localStorage
+        const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]")
+        const savedMenu = JSON.parse(localStorage.getItem("menuItems") || "[]")
+        setOrders(savedOrders)
+        setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems)
+      } catch (err) {
+        toast({
+          title: "Ошибка авторизации",
+          description: "Недействительный токен или ошибка сервера.",
+          variant: "destructive",
+        })
+        localStorage.removeItem("user")
+        router.push("/")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    verifyUser()
   }, [router])
 
   useEffect(() => {
@@ -98,6 +141,10 @@ export default function AdminPage() {
 
   const logout = () => {
     localStorage.removeItem("user")
+    toast({
+      title: "Выход",
+      description: "Вы успешно вышли из системы.",
+    })
     router.push("/")
   }
 
@@ -107,7 +154,7 @@ export default function AdminPage() {
     setIngredients(updated)
     toast({
       title: "Запасы обновлены",
-      description: `${updated[index].name}: ${newQuantity} ${updated[index].unit}`
+      description: `${updated[index].name}: ${newQuantity} ${updated[index].unit}`,
     })
   }
 
@@ -169,6 +216,7 @@ export default function AdminPage() {
       .reduce((sum, order) => sum + order.total, 0)
   }
 
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>
   if (!user) return null
 
   return (
@@ -384,161 +432,161 @@ export default function AdminPage() {
                     </DialogContent>
                   </Dialog>
                 </CardContent>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Название</TableHead>
-                        <TableHead>Описание</TableHead>
-                        <TableHead>Категория</TableHead>
-                        <TableHead>Цена</TableHead>
-                        <TableHead>Действия</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {menuItems.map(item => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell>{item.description}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{getCategoryName(item.category)}</Badge>
-                          </TableCell>
-                          <TableCell className="font-bold">{item.price}₼</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => setEditingItem(item)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Редактировать товар</DialogTitle>
-                                  </DialogHeader>
-                                  {editingItem && (
-                                    <div className="space-y-4">
-                                      <div>
-                                        <Label htmlFor="editName">Название</Label>
-                                        <Input
-                                          id="editName"
-                                          value={editingItem.name}
-                                          onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label htmlFor="editDescription">Описание</Label>
-                                        <Input
-                                          id="editDescription"
-                                          value={editingItem.description}
-                                          onChange={(e) => setEditingItem({...editingItem, description: e.target.value})}
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label htmlFor="editPrice">Цена (₼)</Label>
-                                        <Input
-                                          id="editPrice"
-                                          type="number"
-                                          value={editingItem.price}
-                                          onChange={(e) => setEditingItem({...editingItem, price: Number(e.target.value)})}
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label htmlFor="editCategory">Категория</Label>
-                                        <Select 
-                                          value={editingItem.category} 
-                                          onValueChange={(value) => setEditingItem({...editingItem, category: value})}
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="hotdogs">Хот-доги</SelectItem>
-                                            <SelectItem value="sides">Гарниры</SelectItem>
-                                            <SelectItem value="drinks">Напитки</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <Button onClick={saveMenuItem} className="w-full">
-                                        Сохранить изменения
-                                      </Button>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Название</TableHead>
+                      <TableHead>Описание</TableHead>
+                      <TableHead>Категория</TableHead>
+                      <TableHead>Цена</TableHead>
+                      <TableHead>Действия</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {menuItems.map(item => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{getCategoryName(item.category)}</Badge>
+                        </TableCell>
+                        <TableCell className="font-bold">{item.price}₼</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => setEditingItem(item)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Редактировать товар</DialogTitle>
+                                </DialogHeader>
+                                {editingItem && (
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label htmlFor="editName">Название</Label>
+                                      <Input
+                                        id="editName"
+                                        value={editingItem.name}
+                                        onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
+                                      />
                                     </div>
-                                  )}
-                                </DialogContent>
-                              </Dialog>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => deleteMenuItem(item.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="inventory">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Package className="h-5 w-5 mr-2" />
-                    Управление запасами
-                  </CardTitle>
-                  <CardDescription>
-                    Обновляйте количество ингредиентов
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {ingredients.map((ingredient, index) => (
-                      <div key={index} className="border rounded-lg p-4">
-                        <h3 className="font-medium mb-3">{ingredient.name}</h3>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => updateIngredient(index, ingredient.quantity - 1)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <Input
-                            type="number"
-                            value={ingredient.quantity}
-                            onChange={(e) => updateIngredient(index, Number(e.target.value))}
-                            className="text-center"
-                          />
-                          <span className="text-sm text-gray-500 min-w-[30px]">{ingredient.unit}</span>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => updateIngredient(index, ingredient.quantity + 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <Badge 
-                          variant={ingredient.quantity > 10 ? "default" : ingredient.quantity > 5 ? "secondary" : "destructive"}
-                          className="w-full justify-center"
-                        >
-                          {ingredient.quantity > 10 ? "В наличии" : ingredient.quantity > 5 ? "Мало" : "Критично мало"}
-                        </Badge>
-                      </div>
+                                    <div>
+                                      <Label htmlFor="editDescription">Описание</Label>
+                                      <Input
+                                        id="editDescription"
+                                        value={editingItem.description}
+                                        onChange={(e) => setEditingItem({...editingItem, description: e.target.value})}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="editPrice">Цена (₼)</Label>
+                                      <Input
+                                        id="editPrice"
+                                        type="number"
+                                        value={editingItem.price}
+                                        onChange={(e) => setEditingItem({...editingItem, price: Number(e.target.value)})}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="editCategory">Категория</Label>
+                                      <Select 
+                                        value={editingItem.category} 
+                                        onValueChange={(value) => setEditingItem({...editingItem, category: value})}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="hotdogs">Хот-доги</SelectItem>
+                                          <SelectItem value="sides">Гарниры</SelectItem>
+                                          <SelectItem value="drinks">Напитки</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <Button onClick={saveMenuItem} className="w-full">
+                                      Сохранить изменения
+                                    </Button>
+                                  </div>
+                                )}
+                              </DialogContent>
+                            </Dialog>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => deleteMenuItem(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="inventory">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Package className="h-5 w-5 mr-2" />
+                  Управление запасами
+                </CardTitle>
+                <CardDescription>
+                  Обновляйте количество ингредиентов
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {ingredients.map((ingredient, index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <h3 className="font-medium mb-3">{ingredient.name}</h3>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => updateIngredient(index, ingredient.quantity - 1)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          type="number"
+                          value={ingredient.quantity}
+                          onChange={(e) => updateIngredient(index, Number(e.target.value))}
+                          className="text-center"
+                        />
+                        <span className="text-sm text-gray-500 min-w-[30px]">{ingredient.unit}</span>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => updateIngredient(index, ingredient.quantity + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Badge 
+                        variant={ingredient.quantity > 10 ? "default" : ingredient.quantity > 5 ? "secondary" : "destructive"}
+                        className="w-full justify-center"
+                      >
+                        {ingredient.quantity > 10 ? "В наличии" : ingredient.quantity > 5 ? "Мало" : "Критично мало"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
