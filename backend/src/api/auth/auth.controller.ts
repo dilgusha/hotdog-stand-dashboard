@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { validate } from "class-validator";
 import { CreateUserDTO } from "./auth.dto";
 import { AuthService } from "./auth.service";
+import { AuthRequest } from "../../types";
 
 const authService = new AuthService();
 
@@ -27,6 +28,7 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
     });
   }
 };
+
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
   try {

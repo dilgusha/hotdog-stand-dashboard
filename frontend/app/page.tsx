@@ -14,73 +14,68 @@ export default function AuthPage() {
   const [registerData, setRegisterData] = useState({ name: "", password: "" })
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData),
-      })
+ const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-      const data = await res.json()
-      console.log("Ответ от /api/auth/login:", data)
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(loginData),
+    });
 
-      if (!res.ok) {
-        toast({
-          title: "Ошибка входа",
-          description: data.message || "Неверное имя пользователя или пароль",
-          variant: "destructive",
-        })
-        return
-      }
+    const data = await res.json();
 
-      if (!data.access_token || !data.role) {
-        console.error("Недостаточно данных в ответе:", data)
-        toast({
-          title: "Ошибка входа",
-          description: "Сервер вернул неполные данные. Обратитесь к администратору.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const userData = {
-        name: data.name || loginData.name,
-        role: data.role,
-        access_token: data.access_token,
-      }
-      localStorage.setItem("user", JSON.stringify(userData))
-      console.log("Сохраненные данные пользователя:", userData)
-
+    if (!res.ok) {
       toast({
-        title: "Успешный вход",
-        description: `Добро пожаловать, ${userData.name}!`,
-      })
-
-      if (data.role === "ADMIN") {
-        console.log("Перенаправление на /admin")
-        router.push("/admin")
-      } else if (data.role === "EMPLOYEE") {
-        console.log("Перенаправление на /employee")
-        router.push("/employee")
-      } else {
-        console.error("Неизвестная роль:", data.role)
-        toast({
-          title: "Ошибка",
-          description: `Неизвестная роль пользователя: ${data.role}`,
-          variant: "destructive",
-        })
-      }
-    } catch (err) {
-      console.error("Ошибка входа:", err)
-      toast({
-        title: "Ошибка сервера",
-        description: "Не удалось подключиться к серверу. Проверьте соединение.",
+        title: "Ошибка входа",
+        description: data.message || "Неверное имя пользователя или пароль",
         variant: "destructive",
-      })
+      });
+      return;
     }
+
+    if (!data.access_token || !data.role) {
+      toast({
+        title: "Ошибка входа",
+        description: "Сервер вернул неполные данные. Обратитесь к администратору.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const userData = {
+      name: data.name || loginData.name,
+      role: data.role,
+      access_token: data.access_token,
+    };
+    localStorage.setItem("user", JSON.stringify(userData));
+
+    toast({
+      title: "Успешный вход",
+      description: `Добро пожаловать, ${userData.name}!`,
+    });
+
+    if (data.role === "ADMIN") {
+      router.push("/admin");
+    } else if (data.role === "USER") {
+      router.push("/employee");
+    } else {
+      toast({
+        title: "Ошибка",
+        description: `Неизвестная роль пользователя: ${data.role}`,
+        variant: "destructive",
+      });
+    }
+  } catch (err) {
+    toast({
+      title: "Ошибка сервера",
+      description: "Не удалось подключиться к серверу. Проверьте соединение.",
+      variant: "destructive",
+    });
   }
+};
+
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()

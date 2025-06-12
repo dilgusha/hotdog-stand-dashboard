@@ -28,27 +28,50 @@ export class AuthService {
     });
   }
 
-  async login(name: string, password: string) {
-    const user = await User.findOne({ where: { name } });
-    if (!user) {
-      throw new Error("Неверное имя или пароль");
-    }
+ async login(name: string, password: string) {
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      throw new Error("Неверное имя или пароль");
-    }
+  const user = await User.findOne({ where: { name } }); 
 
-    const jwt_payload = { sub: user.id };
-    const jwtSecret = String(appConfig.JWT_SECRET);
+  if (!user) {
+    console.log("No user found with name:", name);
+    throw new Error("Неверное имя или пароль");
+  }
 
-    const token = jwt.sign(jwt_payload, jwtSecret, {
+  let isValidPassword: boolean;
+  try {
+    isValidPassword = await bcrypt.compare(password, user.password);
+    console.log("🔑 Password valid:", isValidPassword);
+  } catch (err) {
+    console.error("Error during bcrypt.compare:", err);
+    throw new Error("Ошибка при проверке пароля");
+  }
+
+  if (!isValidPassword) {
+    console.log("Password does not match for user:", name);
+    throw new Error("Неверное имя или пароль");
+  }
+
+  const jwt_payload = { sub: user.id, role: user.role };
+  const jwtSecret = String(appConfig.JWT_SECRET);
+
+  let token: string;
+  try {
+    token = jwt.sign(jwt_payload, jwtSecret, {
       algorithm: "HS256",
       expiresIn: "1d",
     });
-
-    return { access_token: token };
+    console.log("JWT token generated");
+  } catch (err) {
+    console.error("Error during JWT sign:", err);
+    throw new Error("Ошибка при создании токена");
   }
+
+  return {
+    access_token: token,
+    name: user.name,
+    role: user.role,
+  };
+}
 
   async getUserInfo(userId: number) {
     const user = await User.findOne({
