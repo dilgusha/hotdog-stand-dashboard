@@ -62,4 +62,6 @@ export class Product extends CommonEntity {
 
   @ManyToMany(() => Addon, (addon) => addon.products)
   addons: Addon[];  // Məhsulun daxil olduğu əlavələr
+
+  //description: string; elave et
 }
