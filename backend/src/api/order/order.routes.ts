@@ -13,3 +13,12 @@ router.get("/", useAuth, validateQuery(GetOrdersQueryDto), controller.getAllOrde
 
 export default router;
 */
+
+import { Router } from "express";
+import { OrderController } from "./order.controller";
+
+const orderRoutes = Router();
+
+orderRoutes.post("/order", OrderController.createOrder); 
+
+export default orderRoutes;

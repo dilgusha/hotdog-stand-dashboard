@@ -20,3 +20,20 @@ export class OrderController {
     return res.json(orders);
   };
 }*/
+
+import { Request, Response } from "express";
+import { createOrder } from "./order.service";
+
+
+
+export const OrderController = {
+  createOrder: async (req: Request, res: Response) => {
+    try {
+      const orderData = req.body; // Sifariş məlumatlarını alırıq
+      const order = await createOrder(orderData);
+      res.status(200).json({ message: "Order placed successfully", order });
+    } catch (error) {
+      res.status(500).json({ message: error });
+    }
+  },
+};

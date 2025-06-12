@@ -77,84 +77,84 @@ export default function AdminPage() {
   ]
 
   useEffect(() => {
-  const verifyUser = async () => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      toast({
-        title: "Требуется вход",
-        description: "Пожалуйста, войдите в систему.",
-        variant: "destructive",
-      });
-      router.push("/");
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    const token = parsedUser.access_token;
-
-    try {
-      const res = await fetch("http://localhost:5000/api/auth/verify", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error("Недействительный токен");
-      }
-
-      const data = await res.json();
-      if (data.role !== "ADMIN") {
+    const verifyUser = async () => {
+      const userData = localStorage.getItem("user");
+      if (!userData) {
         toast({
-          title: "Доступ запрещен",
-          description: "Эта страница только для администраторов.",
+          title: "Требуется вход",
+          description: "Пожалуйста, войдите в систему.",
           variant: "destructive",
         });
-        router.push(data.role === "USER" ? "/employee" : "/");
+        router.push("/");
         return;
       }
 
-      setUser(data);
+      const parsedUser = JSON.parse(userData);
+      const token = parsedUser.access_token;
 
-      // Load orders and menu from backend or localStorage
-      const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-      const savedMenu = JSON.parse(localStorage.getItem("menuItems") || "[]");
-      setOrders(savedOrders);
-      // setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems);
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/verify", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-      // Fetch inventory items
-      const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+        if (!res.ok) {
+          throw new Error("Недействительный токен");
+        }
 
-      if (!inventoryRes.ok) {
-        throw new Error("Не удалось загрузить запасы");
+        const data = await res.json();
+        if (data.role !== "ADMIN") {
+          toast({
+            title: "Доступ запрещен",
+            description: "Эта страница только для администраторов.",
+            variant: "destructive",
+          });
+          router.push(data.role === "USER" ? "/employee" : "/");
+          return;
+        }
+
+        setUser(data);
+
+        // Load orders and menu from backend or localStorage
+        const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+        const savedMenu = JSON.parse(localStorage.getItem("menuItems") || "[]");
+        setOrders(savedOrders);
+        // setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems);
+
+        // Fetch inventory items
+        const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!inventoryRes.ok) {
+          throw new Error("Не удалось загрузить запасы");
+        }
+
+        const inventoryData = await inventoryRes.json();
+        setIngredients(inventoryData.data); // Assuming the response is { data: [...] }
+      } catch (err: any) { // Explicitly type err as 'any' or use type guard
+        toast({
+          title: "Ошибка авторизации",
+          description:
+            err instanceof Error ? err.message : "Недействительный токен или ошибка сервера.",
+          variant: "destructive",
+        });
+        localStorage.removeItem("user");
+        router.push("/");
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      const inventoryData = await inventoryRes.json();
-      setIngredients(inventoryData.data); // Assuming the response is { data: [...] }
-    } catch (err: any) { // Explicitly type err as 'any' or use type guard
-      toast({
-        title: "Ошибка авторизации",
-        description:
-          err instanceof Error ? err.message : "Недействительный токен или ошибка сервера.",
-        variant: "destructive",
-      });
-      localStorage.removeItem("user");
-      router.push("/");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  verifyUser();
-}, [router]);
+    verifyUser();
+  }, [router]);
   useEffect(() => {
     if (menuItems.length > 0) {
       localStorage.setItem("menuItems", JSON.stringify(menuItems))
@@ -170,20 +170,38 @@ export default function AdminPage() {
     router.push("/")
   }
 
-//  const [ingredients, setIngredients] = useState([]);
-// const [isLoading, setIsLoading] = useState(true);
+  //  const [ingredients, setIngredients] = useState([]);
+  // const [isLoading, setIsLoading] = useState(true);
+  console.log("Ingredients data:", ingredients);
+  const updateIngredient = async (ingredientId: string, newQuantity: number) => {
+  // Köhnə state-i saxla
+  const previousIngredients = [...ingredients];
 
-const updateIngredient = async (index: number, newQuantity: number) => {
-  const updated = [...ingredients];
-  updated[index] = { ...updated[index], quantity: newQuantity };
-  setIngredients(updated);  // frontend-i dərhal yenilə
+  // Optimist yeniləmə
+  const updated = ingredients.map((ingredient) =>
+    ingredient.id === ingredientId
+      ? { ...ingredient, quantity: newQuantity }
+      : ingredient
+  );
+  setIngredients(updated);
 
-  const ingredientId = updated[index].id;
-  const token = localStorage.getItem("access_token");
+  const userData = localStorage.getItem("user");
+  if (!userData) {
+    toast({
+      title: "Ошибка авторизации",
+      description: "Пользователь не авторизован",
+      variant: "destructive",
+    });
+    setIngredients(previousIngredients); // Geri qaytar
+    return;
+  }
+
+  const parsedUser = JSON.parse(userData);
+  const token = parsedUser.access_token;
 
   try {
     const res = await fetch(`http://localhost:5000/api/inventory/${ingredientId}/quantity`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -192,14 +210,19 @@ const updateIngredient = async (index: number, newQuantity: number) => {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to update ingredient quantity");
+      const errorText = await res.text();
+      console.error("API Error:", res.status, errorText);
+      throw new Error(`Failed to update ingredient quantity: ${res.status}`);
     }
 
+    const updatedIngredient = updated.find((ing) => ing.id === ingredientId);
     toast({
       title: "Запасы обновлены",
-      description: `${updated[index].ingredient}: ${newQuantity}`,
+      description: `${updatedIngredient?.ingredient}: ${newQuantity}`,
     });
   } catch (error) {
+    console.error("Update ingredient error:", error);
+    setIngredients(previousIngredients); // Səhv olduqda köhnə state-i bərpa et
     toast({
       title: "Ошибка обновления",
       description: "Не удалось обновить запасы",
@@ -207,6 +230,75 @@ const updateIngredient = async (index: number, newQuantity: number) => {
     });
   }
 };
+
+  // Alternative: Check your backend routes
+  // You can also add this function to test what endpoints are available:
+  const testInventoryEndpoints = async () => {
+    const userData = localStorage.getItem("user");
+    if (!userData) return;
+
+    const parsedUser = JSON.parse(userData);
+    const token = parsedUser.access_token;
+
+    // Test different endpoints to see which one works
+    const endpoints = [
+      `http://localhost:5000/api/inventory/1/quantity`,
+      `http://localhost:5000/api/inventory/1`,
+      `http://localhost:5000/api/inventory/update/1`,
+      `http://localhost:5000/api/inventory/update`,
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Testing endpoint: ${endpoint}`);
+        const res = await fetch(endpoint, {
+          method: "PUT",  // or try "PATCH"
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ quantity: 10 }),
+        });
+        console.log(`${endpoint}: ${res.status} ${res.statusText}`);
+      } catch (error) {
+        console.log(`${endpoint}: Error - ${error}`);
+      }
+    }
+  };
+  // const updateIngredient = async (index: number, newQuantity: number) => {
+  //   const updated = [...ingredients];
+  //   updated[index] = { ...updated[index], quantity: newQuantity };
+  //   setIngredients(updated);  // frontend-i dərhal yenilə
+
+  //   const ingredientId = updated[index].id;
+  //   const token = localStorage.getItem("access_token");
+
+  //   try {
+  //     const res = await fetch(`http://localhost:5000/api/inventory/${ingredientId}/quantity`, {
+  //       method: "PUT",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //       body: JSON.stringify({ quantity: newQuantity }),
+  //     });
+
+  //     if (!res.ok) {
+  //       throw new Error("Failed to update ingredient quantity");
+  //     }
+
+  //     toast({
+  //       title: "Запасы обновлены",
+  //       description: `${updated[index].ingredient}: ${newQuantity}`,
+  //     });
+  //   } catch (error) {
+  //     toast({
+  //       title: "Ошибка обновления",
+  //       description: "Не удалось обновить запасы",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
 
 
   // const updateIngredient = (index: number, newQuantity: number) => {
@@ -664,27 +756,35 @@ const updateIngredient = async (index: number, newQuantity: number) => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {ingredients.map((ingredient, index) => (
+                  {ingredients.map((ingredient) => (
                     <div key={ingredient.id} className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-3">{ingredient.ingredient}</h3>  {/* ingredient.name istifadə et */}
+                      <h3 className="font-medium mb-3">{ingredient.ingredient}</h3>
                       <div className="flex items-center gap-2 mb-3">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateIngredient(index, ingredient.quantity - 1)}
+                          onClick={() => updateIngredient(ingredient.id, Math.max(0, ingredient.quantity - 1))}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <Input
+                        {/* <Input
                           type="number"
                           value={ingredient.quantity}
-                          onChange={(e) => updateIngredient(index, Number(e.target.value))}
+                          onChange={(e) => updateIngredient(ingredient.id, Math.max(0, Number(e.target.value)))}
                           className="text-center"
+                          min="0"
+                        /> */}
+                        <input
+                          type="number"
+                          value={ingredient.quantity} // State-dən dəyəri alın
+                          onChange={(e) => updateIngredient(ingredient.id, Math.max(0, Number(e.target.value)))}
+                          className="text-center"
+                          min="0"
                         />
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateIngredient(index, ingredient.quantity + 1)}
+                          onClick={() => updateIngredient(ingredient.id, ingredient.quantity + 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -709,7 +809,6 @@ const updateIngredient = async (index: number, newQuantity: number) => {
                   ))}
                 </div>
               </CardContent>
-
 
             </Card>
           </TabsContent>

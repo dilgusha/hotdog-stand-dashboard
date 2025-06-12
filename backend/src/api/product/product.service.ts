@@ -13,7 +13,6 @@ export const createProduct = async (dto: CreateProductDTO) => {
   const product = Product.create({
     name: dto.name,
     price: dto.price,
-    description: dto.description,
     category: dto.category,
   });
 
