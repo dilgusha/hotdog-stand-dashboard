@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+/*import { Request, Response } from 'express';
 import { CreateOrderDto } from './order.dto';
 import { OrderService } from './order.service';
 import { AuthRequest } from '../../types';
@@ -19,4 +19,4 @@ export class OrderController {
     const orders = await this.orderService.getAllOrders(query);
     return res.json(orders);
   };
-}
+}*/

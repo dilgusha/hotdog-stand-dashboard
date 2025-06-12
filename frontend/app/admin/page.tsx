@@ -77,68 +77,84 @@ export default function AdminPage() {
   ]
 
   useEffect(() => {
-    const verifyUser = async () => {
-      const userData = localStorage.getItem("user")
-      if (!userData) {
-        toast({
-          title: "Требуется вход",
-          description: "Пожалуйста, войдите в систему.",
-          variant: "destructive",
-        })
-        router.push("/")
-        return
-      }
-
-      const parsedUser = JSON.parse(userData)
-      const token = parsedUser.access_token
-
-      try {
-        const res = await fetch("http://localhost:5000/api/auth/verify", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
-
-        if (!res.ok) {
-          throw new Error("Недействительный токен")
-        }
-
-        const data = await res.json()
-        if (data.role !== "ADMIN") {
-          toast({
-            title: "Доступ запрещен",
-            description: "Эта страница только для администраторов.",
-            variant: "destructive",
-          })
-          router.push(data.role === "EMPLOYEE" ? "/employee" : "/")
-          return
-        }
-
-        setUser(data)
-
-        // Load orders and menu from backend or localStorage
-        const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]")
-        const savedMenu = JSON.parse(localStorage.getItem("menuItems") || "[]")
-        setOrders(savedOrders)
-        // setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems)
-      } catch (err) {
-        toast({
-          title: "Ошибка авторизации",
-          description: "Недействительный токен или ошибка сервера.",
-          variant: "destructive",
-        })
-        localStorage.removeItem("user")
-        router.push("/")
-      } finally {
-        setIsLoading(false)
-      }
+  const verifyUser = async () => {
+    const userData = localStorage.getItem("user");
+    if (!userData) {
+      toast({
+        title: "Требуется вход",
+        description: "Пожалуйста, войдите в систему.",
+        variant: "destructive",
+      });
+      router.push("/");
+      return;
     }
 
-    verifyUser()
-  }, [router])
+    const parsedUser = JSON.parse(userData);
+    const token = parsedUser.access_token;
 
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/verify", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Недействительный токен");
+      }
+
+      const data = await res.json();
+      if (data.role !== "ADMIN") {
+        toast({
+          title: "Доступ запрещен",
+          description: "Эта страница только для администраторов.",
+          variant: "destructive",
+        });
+        router.push(data.role === "USER" ? "/employee" : "/");
+        return;
+      }
+
+      setUser(data);
+
+      // Load orders and menu from backend or localStorage
+      const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+      const savedMenu = JSON.parse(localStorage.getItem("menuItems") || "[]");
+      setOrders(savedOrders);
+      // setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems);
+
+      // Fetch inventory items
+      const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!inventoryRes.ok) {
+        throw new Error("Не удалось загрузить запасы");
+      }
+
+      const inventoryData = await inventoryRes.json();
+      setIngredients(inventoryData.data); // Assuming the response is { data: [...] }
+    } catch (err: any) { // Explicitly type err as 'any' or use type guard
+      toast({
+        title: "Ошибка авторизации",
+        description:
+          err instanceof Error ? err.message : "Недействительный токен или ошибка сервера.",
+        variant: "destructive",
+      });
+      localStorage.removeItem("user");
+      router.push("/");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  verifyUser();
+}, [router]);
   useEffect(() => {
     if (menuItems.length > 0) {
       localStorage.setItem("menuItems", JSON.stringify(menuItems))

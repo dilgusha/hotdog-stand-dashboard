@@ -1,4 +1,4 @@
-import { Router } from "express";
+/*import { Router } from "express";
 import { OrderController } from "./order.controller";
 import { CreateOrderDto, GetOrdersQueryDto } from "./order.dto";
 import { validateBody, validateQuery } from "../../common/middlewares/validation.middleware";
@@ -12,3 +12,4 @@ router.post("/", useAuth, validateBody(CreateOrderDto), controller.createOrder);
 router.get("/", useAuth, validateQuery(GetOrdersQueryDto), controller.getAllOrders);
 
 export default router;
+*/

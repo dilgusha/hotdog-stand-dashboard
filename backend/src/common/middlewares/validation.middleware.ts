@@ -1,4 +1,4 @@
-import { plainToInstance } from 'class-transformer';
+/*import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { Request, Response, NextFunction } from 'express';
 
@@ -33,3 +33,4 @@ export function validateQuery<T>(dtoClass: new () => T) {
     next();
   };
 }
+*/
