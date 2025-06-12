@@ -21,9 +21,7 @@ export class Statistics extends CommonEntity {
   @Column({ type: "int", default: 0 })
   totalOrders: number;
 
-  @Column("simple-array")
-  popularItems: string[];
+  @Column({ type: "timestamp", nullable: true })
+  lastUpdated: Date;
 
-  @Column("simple-array")
-  revenueByDay: string[];
 }

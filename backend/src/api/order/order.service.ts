@@ -14,6 +14,7 @@ import { Order } from "../../models/Order.model";
 import { OrderItem } from "../../models/OrderItem.model";
 import { Product } from "../../models/Product.model";
 import { Recipe } from "../../models/Recipe.model";
+import { ProductCategory } from "../../common/enum/product-category.enum";
 
 // export class OrderService {
 //   private orderRepo = AppDataSource.getRepository(Order);
@@ -170,11 +171,28 @@ export const createOrder = async (orderData: any) => {
         await inventoryRepo.save(inventoryItem);
         usedIngredients.push(inventoryItem);
       }
-      else{
+      else {
         throw new Error(`${inventoryItem?.quantity} ${r.ingredient.ingredient} is not enough for ${quantity} ${product.name}`);
       }
     }
     orderItem.ingredients = usedIngredients;
+
+    if (item.ingredients && Array.isArray(item.ingredients)) {
+      const drinkInventories = await inventoryRepo.find({
+        where: { id: In(item.ingredients) },
+        relations: ["products"],
+      });
+
+      const validDrinks = drinkInventories.filter(inv =>
+        inv.products.some(p => p.category === ProductCategory.DRINK)
+      );
+
+      if (validDrinks.length !== item.ingredients.length) {
+        throw new Error("Some ingredients are not valid drinks");
+      }
+
+      usedIngredients.push(...validDrinks);
+    }
 
     if (item.addonIds && Array.isArray(item.addonIds)) {
       const addons = await addonRepo.findBy({ id: In(item.addonIds) });
@@ -195,5 +213,5 @@ export const createOrder = async (orderData: any) => {
   order.price = totalPrice;
   order.items = orderItems;
 
-  return await orderRepo.save(order);  // ❗ burada response yox, return var
+  return await orderRepo.save(order);
 };
