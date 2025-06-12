@@ -1,6 +1,6 @@
 export enum ProductCategory {
   HOTDOG = "hotdog",
-  SIDE = "side",
+  SIDES = "sides",
   DRINK = "drink",
   ADDON = "addon",
 }

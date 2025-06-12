@@ -30,21 +30,27 @@ interface Order {
   employee: string
 }
 
+interface Inventory {
+  id: string;
+  ingredient: string;
+  quantity: number;
+}
 export default function AdminPage() {
+  const [ingredients, setIngredients] = useState<Inventory[]>([]);  // Envanter state'i
   const [user, setUser] = useState<any>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
-  const [ingredients, setIngredients] = useState([
-    { name: "Булочки для хот-догов", quantity: 45, unit: "шт" },
-    { name: "Говяжьи сосиски", quantity: 38, unit: "шт" },
-    { name: "Сыр чеддер", quantity: 2.5, unit: "кг" },
-    { name: "Кетчуп", quantity: 1.2, unit: "л" },
-    { name: "Горчица", quantity: 0.8, unit: "л" },
-    { name: "Халапеньо", quantity: 0.5, unit: "кг" },
-    { name: "Картофель", quantity: 8, unit: "кг" },
-    { name: "Куриное филе", quantity: 3, unit: "кг" },
-    { name: "Моцарелла", quantity: 1.5, unit: "кг" },
-  ])
+  // const [ingredients, setIngredients] = useState([
+  //   { id: "1", name: "Булочки для хот-догов", quantity: 45, unit: "шт" },
+  //   { id: "2", name: "Говяжьи сосиски", quantity: 38, unit: "шт" },
+  //   { id: "3", name: "Сыр чеддер", quantity: 2.5, unit: "кг" },
+  //   { id: "4", name: "Кетчуп", quantity: 1.2, unit: "л" },
+  //   { id: "5", name: "Горчица", quantity: 0.8, unit: "л" },
+  //   { id: "6", name: "Халапеньо", quantity: 0.5, unit: "кг" },
+  //   { id: "7", name: "Картофель", quantity: 8, unit: "кг" },
+  //   { id: "8", name: "Куриное филе", quantity: 3, unit: "кг" },
+  //   { id: "9", name: "Моцарелла", quantity: 1.5, unit: "кг" },
+  // ])
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({})
   const [isAddingItem, setIsAddingItem] = useState(false)
@@ -116,7 +122,7 @@ export default function AdminPage() {
         const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]")
         const savedMenu = JSON.parse(localStorage.getItem("menuItems") || "[]")
         setOrders(savedOrders)
-        setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems)
+        // setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems)
       } catch (err) {
         toast({
           title: "Ошибка авторизации",
@@ -148,37 +154,128 @@ export default function AdminPage() {
     router.push("/")
   }
 
-  const updateIngredient = (index: number, newQuantity: number) => {
-    const updated = [...ingredients]
-    updated[index].quantity = Math.max(0, newQuantity)
-    setIngredients(updated)
+//  const [ingredients, setIngredients] = useState([]);
+// const [isLoading, setIsLoading] = useState(true);
+
+const updateIngredient = async (index: number, newQuantity: number) => {
+  const updated = [...ingredients];
+  updated[index] = { ...updated[index], quantity: newQuantity };
+  setIngredients(updated);  // frontend-i dərhal yenilə
+
+  const ingredientId = updated[index].id;
+  const token = localStorage.getItem("access_token");
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/inventory/${ingredientId}/quantity`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ quantity: newQuantity }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to update ingredient quantity");
+    }
+
     toast({
       title: "Запасы обновлены",
-      description: `${updated[index].name}: ${newQuantity} ${updated[index].unit}`,
-    })
+      description: `${updated[index].ingredient}: ${newQuantity}`,
+    });
+  } catch (error) {
+    toast({
+      title: "Ошибка обновления",
+      description: "Не удалось обновить запасы",
+      variant: "destructive",
+    });
   }
+};
 
-  const saveMenuItem = () => {
+
+  // const updateIngredient = (index: number, newQuantity: number) => {
+  //   const updated = [...ingredients]
+  //   updated[index].quantity = Math.max(0, newQuantity)
+  //   setIngredients(updated)
+  //   toast({
+  //     title: "Запасы обновлены",
+  //     description: `${updated[index].name}: ${newQuantity} ${updated[index].unit}`,
+  //   })
+  // }
+
+  const saveMenuItem = async () => {
     if (editingItem) {
-      setMenuItems(menuItems.map(item => 
-        item.id === editingItem.id ? editingItem : item
-      ))
-      toast({ title: "Товар обновлен", description: "Изменения сохранены" })
-    } else if (newItem.name && newItem.description && newItem.price && newItem.category) {
-      const item: MenuItem = {
-        id: Date.now().toString(),
-        name: newItem.name,
-        description: newItem.description,
-        price: newItem.price,
-        category: newItem.category
+      // Update existing item in the backend if editing
+      const res = await fetch(`http://localhost:5000/api/products/update/${editingItem.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editingItem),
+      });
+
+      if (res.ok) {
+        setMenuItems(menuItems.map(item => item.id === editingItem.id ? editingItem : item));
+        toast({ title: "Товар обновлен", description: "Изменения сохранены" });
+      } else {
+        toast({ title: "Ошибка", description: "Не удалось обновить товар" });
       }
-      setMenuItems([...menuItems, item])
-      toast({ title: "Товар добавлен", description: "Новый товар добавлен в меню" })
-      setNewItem({})
+    } else if (newItem.name && newItem.description && newItem.price && newItem.category) {
+      // Send new item to backend
+      const token = localStorage.getItem("access_token"); // or get token from your app's state
+      console.log(token);
+      const res = await fetch("http://localhost:5000/api/products/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,  // Ensure the token is prefixed with 'Bearer'
+        },
+        body: JSON.stringify(newItem),
+      });
+
+
+      // const res = await fetch("http://localhost:5000/api/products/create", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(newItem),
+      // });
+
+      if (res.ok) {
+        const item = await res.json();
+        setMenuItems([...menuItems, item]);
+        toast({ title: "Товар добавлен", description: "Новый товар добавлен в меню" });
+        setNewItem({});  // Reset the form
+        setIsAddingItem(false);  // Close the dialog
+      } else {
+        toast({ title: "Ошибка", description: "Не удалось добавить товар" });
+      }
     }
-    setEditingItem(null)
-    setIsAddingItem(false)
-  }
+    setEditingItem(null);
+  };
+
+  // const saveMenuItem = () => {
+  //   if (editingItem) {
+  //     setMenuItems(menuItems.map(item => 
+  //       item.id === editingItem.id ? editingItem : item
+  //     ))
+  //     toast({ title: "Товар обновлен", description: "Изменения сохранены" })
+  //   } else if (newItem.name && newItem.description && newItem.price && newItem.category) {
+  //     const item: MenuItem = {
+  //       id: Date.now().toString(),
+  //       name: newItem.name,
+  //       description: newItem.description,
+  //       price: newItem.price,
+  //       category: newItem.category
+  //     }
+  //     setMenuItems([...menuItems, item])
+  //     toast({ title: "Товар добавлен", description: "Новый товар добавлен в меню" })
+  //     setNewItem({})
+  //   }
+  //   setEditingItem(null)
+  //   setIsAddingItem(false)
+  // }
 
   const deleteMenuItem = (id: string) => {
     setMenuItems(menuItems.filter(item => item.id !== id))
@@ -188,7 +285,7 @@ export default function AdminPage() {
   const getCategoryName = (category: string) => {
     const names = {
       hotdogs: "Хот-доги",
-      sides: "Гарниры", 
+      sides: "Гарниры",
       drinks: "Напитки"
     }
     return names[category as keyof typeof names] || category
@@ -219,6 +316,8 @@ export default function AdminPage() {
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>
   if (!user) return null
 
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -229,9 +328,9 @@ export default function AdminPage() {
               <Badge variant="default" className="ml-3">Администратор</Badge>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+              {/* <span className="text-sm text-gray-600">
                 Привет, {user.name}!
-              </span>
+              </span> */}
               <Button variant="outline" size="sm" onClick={logout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Выйти
@@ -392,7 +491,7 @@ export default function AdminPage() {
                           <Input
                             id="name"
                             value={newItem.name || ""}
-                            onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                            onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                           />
                         </div>
                         <div>
@@ -400,7 +499,7 @@ export default function AdminPage() {
                           <Input
                             id="description"
                             value={newItem.description || ""}
-                            onChange={(e) => setNewItem({...newItem, description: e.target.value})}
+                            onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                           />
                         </div>
                         <div>
@@ -409,12 +508,12 @@ export default function AdminPage() {
                             id="price"
                             type="number"
                             value={newItem.price || ""}
-                            onChange={(e) => setNewItem({...newItem, price: Number(e.target.value)})}
+                            onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })}
                           />
                         </div>
                         <div>
                           <Label htmlFor="category">Категория</Label>
-                          <Select value={newItem.category} onValueChange={(value) => setNewItem({...newItem, category: value})}>
+                          <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
                             <SelectTrigger>
                               <SelectValue placeholder="Выберите категорию" />
                             </SelectTrigger>
@@ -457,8 +556,8 @@ export default function AdminPage() {
                           <div className="flex gap-2">
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => setEditingItem(item)}
                                 >
@@ -476,7 +575,7 @@ export default function AdminPage() {
                                       <Input
                                         id="editName"
                                         value={editingItem.name}
-                                        onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
+                                        onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
                                       />
                                     </div>
                                     <div>
@@ -484,7 +583,7 @@ export default function AdminPage() {
                                       <Input
                                         id="editDescription"
                                         value={editingItem.description}
-                                        onChange={(e) => setEditingItem({...editingItem, description: e.target.value})}
+                                        onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
                                       />
                                     </div>
                                     <div>
@@ -493,14 +592,14 @@ export default function AdminPage() {
                                         id="editPrice"
                                         type="number"
                                         value={editingItem.price}
-                                        onChange={(e) => setEditingItem({...editingItem, price: Number(e.target.value)})}
+                                        onChange={(e) => setEditingItem({ ...editingItem, price: Number(e.target.value) })}
                                       />
                                     </div>
                                     <div>
                                       <Label htmlFor="editCategory">Категория</Label>
-                                      <Select 
-                                        value={editingItem.category} 
-                                        onValueChange={(value) => setEditingItem({...editingItem, category: value})}
+                                      <Select
+                                        value={editingItem.category}
+                                        onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}
                                       >
                                         <SelectTrigger>
                                           <SelectValue />
@@ -519,8 +618,8 @@ export default function AdminPage() {
                                 )}
                               </DialogContent>
                             </Dialog>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="destructive"
                               onClick={() => deleteMenuItem(item.id)}
                             >
@@ -550,11 +649,11 @@ export default function AdminPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {ingredients.map((ingredient, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-3">{ingredient.name}</h3>
+                    <div key={ingredient.id} className="border rounded-lg p-4">
+                      <h3 className="font-medium mb-3">{ingredient.ingredient}</h3>  {/* ingredient.name istifadə et */}
                       <div className="flex items-center gap-2 mb-3">
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => updateIngredient(index, ingredient.quantity - 1)}
                         >
@@ -566,25 +665,36 @@ export default function AdminPage() {
                           onChange={(e) => updateIngredient(index, Number(e.target.value))}
                           className="text-center"
                         />
-                        <span className="text-sm text-gray-500 min-w-[30px]">{ingredient.unit}</span>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => updateIngredient(index, ingredient.quantity + 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
-                      <Badge 
-                        variant={ingredient.quantity > 10 ? "default" : ingredient.quantity > 5 ? "secondary" : "destructive"}
+                      <Badge
+                        variant={
+                          ingredient.quantity > 10
+                            ? "default"
+                            : ingredient.quantity > 5
+                              ? "secondary"
+                              : "destructive"
+                        }
                         className="w-full justify-center"
                       >
-                        {ingredient.quantity > 10 ? "В наличии" : ingredient.quantity > 5 ? "Мало" : "Критично мало"}
+                        {ingredient.quantity > 10
+                          ? "В наличии"
+                          : ingredient.quantity > 5
+                            ? "Мало"
+                            : "Критично мало"}
                       </Badge>
                     </div>
                   ))}
                 </div>
               </CardContent>
+
+
             </Card>
           </TabsContent>
         </Tabs>

@@ -1,5 +1,6 @@
 import { DataSource } from "typeorm";
 import { appConfig } from "./consts";
+import { join } from "path";
 
 export const AppDataSource = new DataSource({
   type: "postgres", 
@@ -8,9 +9,11 @@ export const AppDataSource = new DataSource({
   username: appConfig.POSTGRES_USERNAME, 
   password: appConfig.POSTGRES_PASSWORD, 
   database: appConfig.POSTGRES_DATABASE, 
-  entities: ["src/models/**/*.ts"], 
-  subscribers: [],
+entities: [
+    join(__dirname, '../models/*{.ts,.js}'),
+  ],
+    subscribers: [],
   migrations: [],
-  logging: false,
+  logging: true,
   synchronize: true,
 });
