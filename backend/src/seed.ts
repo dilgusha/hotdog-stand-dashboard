@@ -142,187 +142,208 @@ const seedDatabase = async () => {
     const productRepository = AppDataSource.getRepository(Product);
     const recipeRepository = AppDataSource.getRepository(Recipe);
 
-    const ingredientsData = [
-      "Beef Hotdog",
-      "Bun",
-      "Ketchup",
-      "Mustard",
-      "Melted Cheese",
-      "Hot Sauce",
-      "Jalapeños",
-      "Basil Pesto",
-      "Grated Parmesan",
-      "BBQ Sauce",
-      "Crispy Onions",
-      "Honey Mustard",
-      "Pickles",
-      "Chicken Pieces",
-      "Potatoes",
-      "Mozzarella",
-      "Sausages",
-      "House Sauces"
-    ];
+    // Check if inventory items already exist
+    const existingInventoryCount = await inventoryRepository.count();
+    if (existingInventoryCount > 0) {
+      console.log("Inventory items already exist, skipping inventory seeding.");
+    } else {
+      const ingredientsData = [
+        { name: "Beef Hotdog", quantity: 100 },
+        { name: "Bun", quantity: 100 },
+        { name: "Ketchup", quantity: 100 },
+        { name: "Mustard", quantity: 100 },
+        { name: "Melted Cheese", quantity: 100 },
+        { name: "Hot Sauce", quantity: 100 },
+        { name: "Jalapeños", quantity: 100 },
+        { name: "Basil Pesto", quantity: 100 },
+        { name: "Grated Parmesan", quantity: 100 },
+        { name: "BBQ Sauce", quantity: 100 },
+        { name: "Crispy Onions", quantity: 100 },
+        { name: "Honey Mustard", quantity: 100 },
+        { name: "Pickles", quantity: 100 },
+        { name: "Chicken Pieces", quantity: 100 },
+        { name: "Potatoes", quantity: 100 },
+        { name: "Mozzarella", quantity: 100 },
+        { name: "Sausages", quantity: 100 },
+        { name: "House Sauces", quantity: 100 },
+      ];
 
-    const ingredientsMap = new Map<string, Inventory>();
+      const ingredientsMap = new Map<string, Inventory>();
 
-    for (const name of ingredientsData) {
-      const inv = new Inventory();
-      inv.ingredient = name;
-      inv.quantity = 100;
-      await inventoryRepository.save(inv);
-      ingredientsMap.set(name, inv);
-    }
-
-    const addOnsData = [
-      "Extra Cheese",
-      "Jalapeños",
-      "BBQ Sauce",
-      "Crispy Onions",
-      "Honey Mustard",
-      "Pickles"
-    ];
-
-    for (const name of addOnsData) {
-      const addon = new AddOn();
-      addon.name = name;
-      await addOnRepository.save(addon);
-    }
-
-    const productsData = [
-      {
-        name: "Classic Dog",
-        price: 5.99,
-        category: ProductCategory.HOTDOG,
-        description: "Beef hotdog, bun, ketchup & mustard",
-        ingredients: [
-          { name: "Beef Hotdog", qty: 1 },
-          { name: "Bun", qty: 1 },
-          { name: "Ketchup", qty: 1 },
-          { name: "Mustard", qty: 1 }
-        ]
-      },
-      {
-        name: "Cheese Dog",
-        price: 6.49,
-        category: ProductCategory.HOTDOG,
-        description: "Beef hotdog, bun, melted cheese",
-        ingredients: [
-          { name: "Beef Hotdog", qty: 1 },
-          { name: "Bun", qty: 1 },
-          { name: "Melted Cheese", qty: 1 }
-        ]
-      },
-      {
-        name: "Spicy Dog",
-        price: 6.99,
-        category: ProductCategory.HOTDOG,
-        description: "Beef hotdog, bun, hot sauce & jalapeños",
-        ingredients: [
-          { name: "Beef Hotdog", qty: 1 },
-          { name: "Bun", qty: 1 },
-          { name: "Hot Sauce", qty: 1 },
-          { name: "Jalapeños", qty: 1 }
-        ]
-      },
-      {
-        name: "Italian Dog",
-        price: 7.49,
-        category: ProductCategory.HOTDOG,
-        description: "Beef hotdog, bun, basil pesto & grated parmesan",
-        ingredients: [
-          { name: "Beef Hotdog", qty: 1 },
-          { name: "Bun", qty: 1 },
-          { name: "Basil Pesto", qty: 1 },
-          { name: "Grated Parmesan", qty: 1 }
-        ]
-      },
-      {
-        name: "BBQ Crunch Dog",
-        price: 7.99,
-        category: ProductCategory.HOTDOG,
-        description: "Beef hotdog, bun, BBQ sauce & crispy onions",
-        ingredients: [
-          { name: "Beef Hotdog", qty: 1 },
-          { name: "Bun", qty: 1 },
-          { name: "BBQ Sauce", qty: 1 },
-          { name: "Crispy Onions", qty: 1 }
-        ]
-      },
-      {
-        name: "Honey Mustard Dog",
-        price: 6.79,
-        category: ProductCategory.HOTDOG,
-        description: "Beef hotdog, bun, honey mustard & pickles",
-        ingredients: [
-          { name: "Beef Hotdog", qty: 1 },
-          { name: "Bun", qty: 1 },
-          { name: "Honey Mustard", qty: 1 },
-          { name: "Pickles", qty: 1 }
-        ]
-      },
-      {
-        name: "Chicken Nuggets (6 pcs)",
-        price: 6.0,
-        category: ProductCategory.SIDES,
-        description: "Crispy breaded chicken bites",
-        ingredients: [
-          { name: "Chicken Pieces", qty: 6 }
-        ]
-      },
-      {
-        name: "French Fries",
-        price: 3.5,
-        category: ProductCategory.SIDES,
-        description: "Golden fried potato sticks",
-        ingredients: [
-          { name: "Potatoes", qty: 1 }
-        ]
-      },
-      {
-        name: "Mozzarella Sticks (5 pcs)",
-        price: 5.0,
-        category: ProductCategory.SIDES,
-        description: "Breaded mozzarella, fried to perfection",
-        ingredients: [
-          { name: "Mozzarella", qty: 5 }
-        ]
-      },
-      {
-        name: "Animal Style Fries",
-        price: 7.5,
-        category: ProductCategory.SIDES,
-        description: "French fries topped with sausages, melted cheese, crispy onions & house sauces",
-        ingredients: [
-          { name: "Potatoes", qty: 1 },
-          { name: "Sausages", qty: 1 },
-          { name: "Melted Cheese", qty: 1 },
-          { name: "Crispy Onions", qty: 1 },
-          { name: "House Sauces", qty: 1 }
-        ]
+      for (const { name, quantity } of ingredientsData) {
+        const inv = new Inventory();
+        inv.ingredient = name;
+        inv.quantity = quantity;
+        await inventoryRepository.save(inv);
+        ingredientsMap.set(name, inv);
       }
-    ];
+      console.log("Inventory items seeded successfully.");
+    }
 
-    for (const pdata of productsData) {
-      const product = new Product();
-      product.name = pdata.name;
-      product.price = pdata.price;
-      product.category = pdata.category;
-      product.description = pdata.description;
-      await productRepository.save(product);
+    // Check if add-ons already exist
+    const existingAddOnsCount = await addOnRepository.count();
+    if (existingAddOnsCount > 0) {
+      console.log("Add-ons already exist, skipping add-ons seeding.");
+    } else {
+      const addOnsData = [
+        "Extra Cheese",
+        "Jalapeños",
+        "BBQ Sauce",
+        "Crispy Onions",
+        "Honey Mustard",
+        "Pickles",
+      ];
 
-      for (const ing of pdata.ingredients) {
-        const ingredient = ingredientsMap.get(ing.name);
-        if (ingredient) {
-          const recipe = new Recipe();
-          recipe.product = product;
-          recipe.ingredient = ingredient;
-          recipe.quantityNeeded = ing.qty;
-          await recipeRepository.save(recipe);
+      for (const name of addOnsData) {
+        const addon = new AddOn();
+        addon.name = name;
+        await addOnRepository.save(addon);
+      }
+      console.log("Add-ons seeded successfully.");
+    }
+
+    // Check if products already exist
+    const existingProductsCount = await productRepository.count();
+    if (existingProductsCount > 0) {
+      console.log("Products already exist, skipping products and recipes seeding.");
+    } else {
+      // Load ingredients for mapping (if not seeded above)
+      const ingredients = await inventoryRepository.find();
+      const ingredientsMap = new Map<string, Inventory>(
+        ingredients.map((inv) => [inv.ingredient, inv]),
+      );
+
+      const productsData = [
+        {
+          name: "Classic Dog",
+          price: 5.99,
+          category: ProductCategory.HOTDOG,
+          description: "Beef hotdog, bun, ketchup & mustard",
+          ingredients: [
+            { name: "Beef Hotdog", qty: 1 },
+            { name: "Bun", qty: 1 },
+            { name: "Ketchup", qty: 1 },
+            { name: "Mustard", qty: 1 },
+          ],
+        },
+        {
+          name: "Cheese Dog",
+          price: 6.49,
+          category: ProductCategory.HOTDOG,
+          description: "Beef hotdog, bun, melted cheese",
+          ingredients: [
+            { name: "Beef Hotdog", qty: 1 },
+            { name: "Bun", qty: 1 },
+            { name: "Melted Cheese", qty: 1 },
+          ],
+        },
+        {
+          name: "Spicy Dog",
+          price: 6.99,
+          category: ProductCategory.HOTDOG,
+          description: "Beef hotdog, bun, hot sauce & jalapeños",
+          ingredients: [
+            { name: "Beef Hotdog", qty: 1 },
+            { name: "Bun", qty: 1 },
+            { name: "Hot Sauce", qty: 1 },
+            { name: "Jalapeños", qty: 1 },
+          ],
+        },
+        {
+          name: "Italian Dog",
+          price: 7.49,
+          category: ProductCategory.HOTDOG,
+          description: "Beef hotdog, bun, basil pesto & grated parmesan",
+          ingredients: [
+            { name: "Beef Hotdog", qty: 1 },
+            { name: "Bun", qty: 1 },
+            { name: "Basil Pesto", qty: 1 },
+            { name: "Grated Parmesan", qty: 1 },
+          ],
+        },
+        {
+          name: "BBQ Crunch Dog",
+          price: 7.99,
+          category: ProductCategory.HOTDOG,
+          description: "Beef hotdog, bun, BBQ sauce & crispy onions",
+          ingredients: [
+            { name: "Beef Hotdog", qty: 1 },
+            { name: "Bun", qty: 1 },
+            { name: "BBQ Sauce", qty: 1 },
+            { name: "Crispy Onions", qty: 1 },
+          ],
+        },
+        {
+          name: "Honey Mustard Dog",
+          price: 6.79,
+          category: ProductCategory.HOTDOG,
+          description: "Beef hotdog, bun, honey mustard & pickles",
+          ingredients: [
+            { name: "Beef Hotdog", qty: 1 },
+            { name: "Bun", qty: 1 },
+            { name: "Honey Mustard", qty: 1 },
+            { name: "Pickles", qty: 1 },
+          ],
+        },
+        {
+          name: "Chicken Nuggets (6 pcs)",
+          price: 6.0,
+          category: ProductCategory.SIDES,
+          description: "Crispy breaded chicken bites",
+          ingredients: [{ name: "Chicken Pieces", qty: 6 }],
+        },
+        {
+          name: "French Fries",
+          price: 3.5,
+          category: ProductCategory.SIDES,
+          description: "Golden fried potato sticks",
+          ingredients: [{ name: "Potatoes", qty: 1 }],
+        },
+        {
+          name: "Mozzarella Sticks (5 pcs)",
+          price: 5.0,
+          category: ProductCategory.SIDES,
+          description: "Breaded mozzarella, fried to perfection",
+          ingredients: [{ name: "Mozzarella", qty: 5 }],
+        },
+        {
+          name: "Animal Style Fries",
+          price: 7.5,
+          category: ProductCategory.SIDES,
+          description: "French fries topped with sausages, melted cheese, crispy onions & house sauces",
+          ingredients: [
+            { name: "Potatoes", qty: 1 },
+            { name: "Sausages", qty: 1 },
+            { name: "Melted Cheese", qty: 1 },
+            { name: "Crispy Onions", qty: 1 },
+            { name: "House Sauces", qty: 1 },
+          ],
+        },
+      ];
+
+      for (const pdata of productsData) {
+        const product = new Product();
+        product.name = pdata.name;
+        product.price = pdata.price;
+        product.category = pdata.category;
+        product.description = pdata.description;
+        await productRepository.save(product);
+
+        for (const ing of pdata.ingredients) {
+          const ingredient = ingredientsMap.get(ing.name);
+          if (ingredient) {
+            const recipe = new Recipe();
+            recipe.product = product;
+            recipe.ingredient = ingredient;
+            recipe.quantityNeeded = ing.qty;
+            await recipeRepository.save(recipe);
+          }
         }
       }
+      console.log("Products and recipes seeded successfully.");
     }
 
-    console.log("Seed data inserted successfully!");
+    console.log("Seed data insertion completed!");
   } catch (error) {
     console.error("Error seeding database:", error);
   } finally {
@@ -331,4 +352,3 @@ const seedDatabase = async () => {
 };
 
 seedDatabase();
-
