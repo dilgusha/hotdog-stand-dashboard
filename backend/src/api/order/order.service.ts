@@ -165,10 +165,13 @@ export const createOrder = async (orderData: any) => {
     const usedIngredients: Inventory[] = [];
     for (const r of recipes) {
       const inventoryItem = await inventoryRepo.findOneBy({ id: r.ingredient.id });
-      if (inventoryItem) {
+      if (inventoryItem && inventoryItem.quantity >= r.quantityNeeded * quantity) {
         inventoryItem.quantity -= r.quantityNeeded * quantity;
         await inventoryRepo.save(inventoryItem);
         usedIngredients.push(inventoryItem);
+      }
+      else{
+        throw new Error(`${inventoryItem?.quantity} ${r.ingredient.ingredient} is not enough for ${quantity} ${product.name}`);
       }
     }
     orderItem.ingredients = usedIngredients;

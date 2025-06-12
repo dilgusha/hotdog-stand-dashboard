@@ -234,6 +234,7 @@ import { Addon } from "./models/AddOn.model";
 import { ProductCategory } from "./common/enum/product-category.enum";
 import { Product } from "./models/Product.model";
 import { Recipe } from "./models/Recipe.model";
+import { Statistics } from "./models/Statistics.model";
 
 const seedDatabase = async () => {
     try {
@@ -269,7 +270,15 @@ const seedDatabase = async () => {
                 { name: "Mozzarella" },
                 { name: "Sausages" },
                 { name: "House Sauces" },
+                // DRINKS
+                { name: "Cola - 4" },
+                { name: "Cola Zero - 4" },
+                { name: "Sprite - 4" },
+                { name: "Fuse Tea – Lemon - 4" },
+                { name: "Fuse Tea – Peach - 4" },
+                { name: "Fuse Tea – Mango - 4" },
             ];
+
 
             for (const { name } of ingredientsData) {
                 const inv = new Inventory();
@@ -524,3 +533,19 @@ const seedDatabase = async () => {
 
 seedDatabase();
 
+
+
+
+// export const seedStatistics = async () => {
+//   const statisticsRepo = AppDataSource.getRepository(Statistics);
+//   const stats = new Statistics();
+
+//   stats.todayRevenue = 0;
+//   stats.monthRevenue = 0;
+//   stats.totalRevenue = 0;
+
+//   await statisticsRepo.save(stats);
+//   console.log("Statistics seeded successfully");
+// };
+
+// seedStatistics();

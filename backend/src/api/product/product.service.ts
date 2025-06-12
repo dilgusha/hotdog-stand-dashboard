@@ -19,3 +19,16 @@ export const createProduct = async (dto: CreateProductDTO) => {
   await product.save();
   return product;
 };
+
+export const getAllProducts = async () => {
+  const products = await Product.find();
+  return products;
+};
+
+export const getProductById = async (id: number) => {
+  const product = await Product.findOneBy({ id });
+  if (!product) {
+    throw new Error("Product not found");
+  }
+  return product;
+};
