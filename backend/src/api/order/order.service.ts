@@ -6,10 +6,14 @@
 // import { User } from "../../models/User.model";
 // import { CreateOrderDto } from "./order.dto";
 
+import { In } from "typeorm";
 import { AppDataSource } from "../../config/data-source";
+import { Addon } from "../../models/AddOn.model";
 import { Inventory } from "../../models/Inventory.model";
 import { Order } from "../../models/Order.model";
+import { OrderItem } from "../../models/OrderItem.model";
 import { Product } from "../../models/Product.model";
+import { Recipe } from "../../models/Recipe.model";
 
 // export class OrderService {
 //   private orderRepo = AppDataSource.getRepository(Order);
@@ -86,41 +90,107 @@ import { Product } from "../../models/Product.model";
 
 
 
+// export const createOrder = async (orderData: any) => {
+//   try {
+//     const orderRepository = AppDataSource.getRepository(Order);
+//     const productRepository = AppDataSource.getRepository(Product);
+//     const inventoryRepository = AppDataSource.getRepository(Inventory);
+
+//     const order = new Order();
+//     order.totalAmount = orderData.totalAmount;
+//     order.price = orderData.price;
+//     await orderRepository.save(order);
+
+//     for (const item of orderData.items) {
+//       const product = await productRepository.findOne({
+//         where: { id: item.productId },
+//         relations: ["ingredients"], 
+//       });
+
+//       if (product) {
+//         for (const ingredient of product.ingredients) {
+//           const inventoryItem = await inventoryRepository.findOne({
+//             where: { id: ingredient.id },
+//           });
+
+//           if (inventoryItem) {
+//             inventoryItem.quantity -= ingredient.quantity; 
+//             await inventoryRepository.save(inventoryItem); 
+//           }
+//         }
+//       }
+//     }
+
+//     console.log("Order placed and inventory updated.");
+//     return order;
+//   } catch (error) {
+//     console.error("Error placing order:", error);
+//     throw new Error("Failed to place order");
+//   }
+// };
+
+
+// order.service.ts
 export const createOrder = async (orderData: any) => {
-  try {
-    const orderRepository = AppDataSource.getRepository(Order);
-    const productRepository = AppDataSource.getRepository(Product);
-    const inventoryRepository = AppDataSource.getRepository(Inventory);
+  const { items } = orderData;
 
-    const order = new Order();
-    order.totalAmount = orderData.totalAmount;
-    order.price = orderData.price;
-    await orderRepository.save(order);
+  const orderRepo = AppDataSource.getRepository(Order);
+  const orderItemRepo = AppDataSource.getRepository(OrderItem);
+  const productRepo = AppDataSource.getRepository(Product);
+  const inventoryRepo = AppDataSource.getRepository(Inventory);
+  const addonRepo = AppDataSource.getRepository(Addon);
+  const recipeRepo = AppDataSource.getRepository(Recipe);
 
-    for (const item of orderData.items) {
-      const product = await productRepository.findOne({
-        where: { id: item.productId },
-        relations: ["ingredients"], 
-      });
+  let totalPrice = 0;
+  const orderItems: OrderItem[] = [];
 
-      if (product) {
-        for (const ingredient of product.ingredients) {
-          const inventoryItem = await inventoryRepository.findOne({
-            where: { id: ingredient.id },
-          });
+  for (const item of items) {
+    const product = await productRepo.findOneBy({ id: item.productId });
+    if (!product) continue;
 
-          if (inventoryItem) {
-            inventoryItem.quantity -= ingredient.quantity; 
-            await inventoryRepository.save(inventoryItem); 
-          }
-        }
+    const orderItem = new OrderItem();
+    const quantity = item.quantity || 1;
+
+    orderItem.product = product;
+    orderItem.price = product.price * quantity;
+    orderItem.quantity = quantity;
+
+    totalPrice += orderItem.price;
+
+    const recipes = await recipeRepo.find({
+      where: { product: { id: product.id } },
+      relations: ["ingredient"],
+    });
+
+    const usedIngredients: Inventory[] = [];
+    for (const r of recipes) {
+      const inventoryItem = await inventoryRepo.findOneBy({ id: r.ingredient.id });
+      if (inventoryItem) {
+        inventoryItem.quantity -= r.quantityNeeded * quantity;
+        await inventoryRepo.save(inventoryItem);
+        usedIngredients.push(inventoryItem);
+      }
+    }
+    orderItem.ingredients = usedIngredients;
+
+    if (item.addonIds && Array.isArray(item.addonIds)) {
+      const addons = await addonRepo.findBy({ id: In(item.addonIds) });
+      orderItem.addons = addons;
+
+      for (const addon of addons) {
+        totalPrice += addon.price * quantity;
+        orderItem.price += addon.price * quantity;
       }
     }
 
-    console.log("Order placed and inventory updated.");
-    return order;
-  } catch (error) {
-    console.error("Error placing order:", error);
-    throw new Error("Failed to place order");
+    await orderItemRepo.save(orderItem);
+    orderItems.push(orderItem);
   }
+
+  const order = new Order();
+  order.totalAmount = orderItems.length;
+  order.price = totalPrice;
+  order.items = orderItems;
+
+  return await orderRepo.save(order);  // ❗ burada response yox, return var
 };

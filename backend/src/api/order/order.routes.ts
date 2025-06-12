@@ -19,6 +19,6 @@ import { OrderController } from "./order.controller";
 
 const orderRoutes = Router();
 
-orderRoutes.post("/order", OrderController.createOrder); 
+orderRoutes.post("/create", OrderController.createOrders); 
 
 export default orderRoutes;

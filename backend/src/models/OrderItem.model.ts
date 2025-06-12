@@ -24,7 +24,7 @@
 //   addon: string; 
 // }
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinColumn, JoinTable } from "typeorm";
 import { Product } from "./Product.model";
 import { Inventory } from "./Inventory.model";
 import { Order } from "./Order.model";
@@ -50,11 +50,20 @@ export class OrderItem extends CommonEntity {
   @JoinColumn({ name: "order_id" })
   order: Order;
 
-  @ManyToMany(() => Addon, (addon) => addon.id)
-  @JoinColumn({ name: "addon_id" })
-  addons: Addon[];  // Bu sifariş maddəsində olan əlavələr
+  @ManyToMany(() => Addon)
+  @JoinTable({
+    name: "order_item_addons",
+    joinColumn: { name: "order_item_id", referencedColumnName: "id" },
+    inverseJoinColumn: { name: "addon_id", referencedColumnName: "id" },
+  })
+  addons: Addon[];
 
-  @ManyToMany(() => Inventory, (inventory) => inventory.id)
-  @JoinColumn({ name: "inventory_id" })
-  ingredients: Inventory[];  // Bu sifariş maddəsində olan maddələr
+  @ManyToMany(() => Inventory)
+  @JoinTable({
+    name: "order_item_ingredients",
+    joinColumn: { name: "order_item_id", referencedColumnName: "id" },
+    inverseJoinColumn: { name: "inventory_id", referencedColumnName: "id" },
+  })
+  ingredients: Inventory[];
+
 }
