@@ -5,7 +5,7 @@ import { roleCheck, useAuth } from "../../common/middlewares/auth.middleware";
 
 const statisticsRouter = Router();
 
-statisticsRouter.get("/all-statistics",getStatistics);
+statisticsRouter.get("/all-statistics", useAuth, roleCheck, getStatistics);
 
 // statisticsRouter.post("/update", updateStatistics);
 

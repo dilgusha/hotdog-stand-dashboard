@@ -16,12 +16,12 @@ export default router;
 
 import { Router } from "express";
 import { OrderController } from "./order.controller";
-import { useAuth } from "../../common/middlewares/auth.middleware";
+import { roleCheck, useAuth } from "../../common/middlewares/auth.middleware";
 
 const orderRoutes = Router();
 
 orderRoutes.post("/make-order",  OrderController.createOrders); 
-orderRoutes.get("/get-all-orders", OrderController.getAllOrders); 
+orderRoutes.get("/get-all-orders", useAuth, roleCheck, OrderController.getAllOrders); 
 
 
 export default orderRoutes;
