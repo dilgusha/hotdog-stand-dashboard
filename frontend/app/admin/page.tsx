@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,7 +27,7 @@ interface OrderItem {
   id: number;
   quantity: number;
   price: number;
-  product: { name: string };
+  product: { name: string } | null; // Allow product to be null
   addons?: { name: string }[];
   drinks?: { name: string }[];
 }
@@ -67,147 +68,147 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
- useEffect(() => {
-  const verifyUser = async () => {
-    console.log("=== Starting verification at", new Date().toLocaleString(), "===");
-    const userData = localStorage.getItem("user");
-    console.log("LocalStorage user data:", userData);
-    if (!userData) {
-      console.log("No user data found, triggering login redirect");
-      toast({
-        title: "Требуется вход",
-        description: "Пожалуйста, войдите в систему.",
-        variant: "destructive",
-      });
-      router.push("/");
-      setIsLoading(false); // Stop loading if no user
-      return;
-    }
-
-    let parsedUser;
-    try {
-      parsedUser = JSON.parse(userData);
-    } catch (parseError) {
-      console.error("Failed to parse user data:", parseError);
-      toast({
-        title: "Ошибка",
-        description: "Недействительные данные пользователя",
-        variant: "destructive",
-      });
-      localStorage.removeItem("user");
-      router.push("/");
-      setIsLoading(false);
-      return;
-    }
-    const token = parsedUser.access_token;
-    console.log("Extracted token:", token);
-
-    try {
-      console.log("Sending auth verify request...");
-      const verifyRes = await fetch("http://localhost:5000/api/auth/verify", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("Auth verify response status:", verifyRes.status);
-      if (!verifyRes.ok) throw new Error("Недействительный токен");
-
-      const userDataJson = await verifyRes.json();
-      console.log("Auth verify response data:", userDataJson);
-      if (userDataJson.role !== "ADMIN") {
-        console.log("User role is not ADMIN, redirecting:", userDataJson.role);
+  useEffect(() => {
+    const verifyUser = async () => {
+      console.log("=== Starting verification at", new Date().toLocaleString(), "===");
+      const userData = localStorage.getItem("user");
+      console.log("LocalStorage user data:", userData);
+      if (!userData) {
+        console.log("No user data found, triggering login redirect");
         toast({
-          title: "Доступ запрещен",
-          description: "Эта страница только для администраторов.",
+          title: "Требуется вход",
+          description: "Пожалуйста, войдите в систему.",
           variant: "destructive",
         });
-        router.push(userDataJson.role === "USER" ? "/employee" : "/");
+        router.push("/");
         setIsLoading(false);
         return;
       }
 
-      setUser(userDataJson);
-      console.log("User state updated:", userDataJson);
+      let parsedUser;
+      try {
+        parsedUser = JSON.parse(userData);
+      } catch (parseError) {
+        console.error("Failed to parse user data:", parseError);
+        toast({
+          title: "Ошибка",
+          description: "Недействительные данные пользователя",
+          variant: "destructive",
+        });
+        localStorage.removeItem("user");
+        router.push("/");
+        setIsLoading(false);
+        return;
+      }
+      const token = parsedUser.access_token;
+      console.log("Extracted token:", token);
 
-      console.log("Fetching statistics...");
-      const statsRes = await fetch("http://localhost:5000/api/statistics/get-all-statistics", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      try {
+        console.log("Sending auth verify request...");
+        const verifyRes = await fetch("http://localhost:5000/api/auth/verify", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-      console.log("Statistics response status:", statsRes.status);
-      if (!statsRes.ok) throw new Error("Не удалось загрузить статистику");
-      const statsData = await statsRes.json();
-      console.log("Statistics data:", statsData);
-      setStatistics(statsData);
+        console.log("Auth verify response status:", verifyRes.status);
+        if (!verifyRes.ok) throw new Error("Недействительный токен");
 
-      console.log("Fetching orders...");
-      const ordersRes = await fetch("http://localhost:5000/api/order/get-all-orders", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+        const userDataJson = await verifyRes.json();
+        console.log("Auth verify response data:", userDataJson);
+        if (userDataJson.role !== "ADMIN") {
+          console.log("User role is not ADMIN, redirecting:", userDataJson.role);
+          toast({
+            title: "Доступ запрещен",
+            description: "Эта страница только для администраторов.",
+            variant: "destructive",
+          });
+          router.push(userDataJson.role === "USER" ? "/employee" : "/");
+          setIsLoading(false);
+          return;
+        }
 
-      console.log("Orders response status:", ordersRes.status);
-      if (!ordersRes.ok) throw new Error("Не удалось загрузить заказы");
-      const ordersData = await ordersRes.json();
-      console.log("Orders data:", ordersData);
-      setOrders(ordersData);
+        setUser(userDataJson);
+        console.log("User state updated:", userDataJson);
 
-      console.log("Fetching inventory...");
-      const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+        console.log("Fetching statistics...");
+        const statsRes = await fetch("http://localhost:5000/api/statistics/get-all-statistics", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-      console.log("Inventory response status:", inventoryRes.status);
-      if (!inventoryRes.ok) throw new Error("Не удалось загрузить запасы");
-      const inventoryData = await inventoryRes.json();
-      console.log("Inventory data:", inventoryData);
-      setIngredients(inventoryData.data || inventoryData); // Handle nested or flat response
+        console.log("Statistics response status:", statsRes.status);
+        if (!statsRes.ok) throw new Error("Не удалось загрузить статистику");
+        const statsData = await statsRes.json();
+        console.log("Statistics data:", statsData);
+        setStatistics(statsData);
 
-      console.log("Fetching menu...");
-      const menuRes = await fetch("http://localhost:5000/api/products/get-all-products", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+        console.log("Fetching orders...");
+        const ordersRes = await fetch("http://localhost:5000/api/order/get-all-orders", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-      console.log("Menu response status:", menuRes.status);
-      if (!menuRes.ok) throw new Error("Не удалось загрузить меню");
-      const menuData = await menuRes.json();
-      console.log("Menu data:", menuData);
-      setMenuItems(menuData.data || menuData); // Handle nested or flat response
-    } catch (err: any) {
-      console.error("Error occurred at", new Date().toLocaleString(), ":", err.message);
-      toast({
-        title: "Ошибка",
-        description: err.message || "Произошла ошибка при загрузке данных",
-        variant: "destructive",
-      });
-      localStorage.removeItem("user");
-      router.push("/");
-    } finally {
-      console.log("=== Loading complete at", new Date().toLocaleString(), "===");
-      setIsLoading(false);
-    }
-  };
+        console.log("Orders response status:", ordersRes.status);
+        if (!ordersRes.ok) throw new Error("Не удалось загрузить заказы");
+        const ordersData = await ordersRes.json();
+        console.log("Orders data:", ordersData);
+        setOrders(ordersData);
 
-  verifyUser();
-}, [router]);
+        console.log("Fetching inventory...");
+        const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log("Inventory response status:", inventoryRes.status);
+        if (!inventoryRes.ok) throw new Error("Не удалось загрузить запасы");
+        const inventoryData = await inventoryRes.json();
+        console.log("Inventory data:", inventoryData);
+        setIngredients(inventoryData.data || inventoryData);
+
+        console.log("Fetching menu...");
+        const menuRes = await fetch("http://localhost:5000/api/products/get-all-products", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log("Menu response status:", menuRes.status);
+        if (!menuRes.ok) throw new Error("Не удалось загрузить меню");
+        const menuData = await menuRes.json();
+        console.log("Menu data:", menuData);
+        setMenuItems(menuData.data || menuData);
+      } catch (err: any) {
+        console.error("Error occurred at", new Date().toLocaleString(), ":", err.message);
+        toast({
+          title: "Ошибка",
+          description: err.message || "Произошла ошибка при загрузке данных",
+          variant: "destructive",
+        });
+        localStorage.removeItem("user");
+        router.push("/");
+      } finally {
+        console.log("=== Loading complete at", new Date().toLocaleString(), "===");
+        setIsLoading(false);
+      }
+    };
+
+    verifyUser();
+  }, [router]);
 
   const logout = () => {
     localStorage.removeItem("user");
@@ -490,7 +491,7 @@ export default function AdminPage() {
                         <div className="text-sm text-gray-600">
                           {order.items.map((item) => (
                             <div key={item.id}>
-                              {item.product.name} x{item.quantity}
+                              {item.product ? `${item.product.name} x${item.quantity}` : "Unknown Product"}
                               {item.addons && item.addons.length > 0 && (
                                 <span className="text-gray-500"> (+{item.addons.map((a) => a.name).join(", ")})</span>
                               )}
@@ -538,7 +539,7 @@ export default function AdminPage() {
                             <div className="space-y-1">
                               {order.items.map((item) => (
                                 <div key={item.id} className="text-sm">
-                                  {item.product.name} x{item.quantity}
+                                  {item.product ? `${item.product.name} x${item.quantity}` : "Unknown Product"}
                                   {item.addons && item.addons.length > 0 && (
                                     <span className="text-gray-500"> (+{item.addons.map((a) => a.name).join(", ")})</span>
                                   )}
@@ -558,180 +559,6 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* <TabsContent value="menu">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center">
-                    <Settings className="h-5 w-5 mr-2" />
-                    Управление меню
-                  </span>
-                </CardTitle>
-                <CardContent>
-                  <Dialog open={isAddingItem} onOpenChange={setIsAddingItem}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Добавить товар
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Добавить новый товар</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="name">Название</Label>
-                          <Input
-                            id="name"
-                            value={newItem.name || ""}
-                            onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="description">Описание</Label>
-                          <Input
-                            id="description"
-                            value={newItem.description || ""}
-                            onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="price">Цена (₼)</Label>
-                          <Input
-                            id="price"
-                            type="number"
-                            value={newItem.price || ""}
-                            onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="category">Категория</Label>
-                          <Select
-                            value={newItem.category}
-                            onValueChange={(value) => setNewItem({ ...newItem, category: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Выберите категорию" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="hotdogs">Хот-доги</SelectItem>
-                              <SelectItem value="sides">Гарниры</SelectItem>
-                              <SelectItem value="drinks">Напитки</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button onClick={saveMenuItem} className="w-full">
-                          Добавить товар
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardContent>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Название</TableHead>
-                      <TableHead>Описание</TableHead>
-                      <TableHead>Категория</TableHead>
-                      <TableHead>Цена</TableHead>
-                      <TableHead>Действия</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {menuItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>{item.description}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{getCategoryName(item.category)}</Badge>
-                        </TableCell>
-                        <TableCell className="font-bold">{item.price}₼</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button size="sm" variant="outline" onClick={() => setEditingItem(item)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Редактировать товар</DialogTitle>
-                                </DialogHeader>
-                                {editingItem && (
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label htmlFor="editName">Название</Label>
-                                      <Input
-                                        id="editName"
-                                        value={editingItem.name}
-                                        onChange={(e) =>
-                                          setEditingItem({ ...editingItem, name: e.target.value })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label htmlFor="editDescription">Описание</Label>
-                                      <Input
-                                        id="editDescription"
-                                        value={editingItem.description}
-                                        onChange={(e) =>
-                                          setEditingItem({ ...editingItem, description: e.target.value })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label htmlFor="editPrice">Цена (₼)</Label>
-                                      <Input
-                                        id="editPrice"
-                                        type="number"
-                                        value={editingItem.price}
-                                        onChange={(e) =>
-                                          setEditingItem({ ...editingItem, price: Number(e.target.value) })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label htmlFor="editCategory">Категория</Label>
-                                      <Select
-                                        value={editingItem.category}
-                                        onValueChange={(value) =>
-                                          setEditingItem({ ...editingItem, category: value })
-                                        }
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="hotdogs">Хот-доги</SelectItem>
-                                          <SelectItem value="sides">Гарниры</SelectItem>
-                                          <SelectItem value="drinks">Напитки</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    <Button onClick={saveMenuItem} className="w-full">
-                                      Сохранить изменения
-                                    </Button>
-                                  </div>
-                                )}
-                              </DialogContent>
-                            </Dialog>
-                            <Button size="sm" variant="destructive" onClick={() => deleteMenuItem(item.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent> */}
 
           <TabsContent value="inventory">
             <Card>
@@ -799,3 +626,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
