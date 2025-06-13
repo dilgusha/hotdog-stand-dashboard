@@ -25,13 +25,17 @@ const seedDatabase = async () => {
         { name: "Melted Cheese" }, { name: "Hot Sauce" }, { name: "Jalapeños" }, { name: "Basil Pesto" },
         { name: "Grated Parmesan" }, { name: "BBQ Sauce" }, { name: "Crispy Onions" }, { name: "Honey Mustard" },
         { name: "Pickles" }, { name: "Chicken Pieces" }, { name: "Potatoes" }, { name: "Mozzarella" },
-        { name: "Sausages" }, { name: "House Sauces" }, { name: "Cola", isDrink: true, price: 4 }, { name: "Cola Zero", isDrink: true, price:4  },
-        { name: "Sprite", isDrink: true, price: 4 }, { name: "Fuse Tea Lemon", isDrink: true, price: 4  }, { name: "Fuse Tea Peach", isDrink: true, price: 4  },
-        { name: "Fuse Tea Mango", isDrink: true, price: 4  },
+        { name: "Sausages" }, { name: "House Sauces" },
+        { name: "Cola", isDrink: true, price: 4 }, { name: "Cola Zero", isDrink: true, price: 4 },
+        { name: "Sprite", isDrink: true, price: 4 }, { name: "Fuse Tea Lemon", isDrink: true, price: 4 },
+        { name: "Fuse Tea Peach", isDrink: true, price: 4 }, { name: "Fuse Tea Mango", isDrink: true, price: 4 },
       ];
-      for (const { name } of ingredientsData) {
+
+      for (const { name, isDrink = false, price = null } of ingredientsData) {
         const inv = new Inventory();
         inv.ingredient = name;
+        inv.isDrink = isDrink;  // Assign isDrink flag properly
+        inv.price = isDrink ? price : null;  // Set price only for drinks
         await inventoryRepository.save(inv);
       }
       console.log("Inventory items seeded successfully.");
@@ -67,6 +71,7 @@ const seedDatabase = async () => {
       }
       console.log("Add-ons seeded successfully.");
     }
+
 
     const existingProductsCount = await productRepository.count();
     if (existingProductsCount > 0) {
