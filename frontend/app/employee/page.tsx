@@ -10,6 +10,7 @@ import { Plus, Minus, ShoppingCart, LogOut, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { ProductCategory } from "../../../backend/src/common/enum/product-category.enum";
+import { set } from "date-fns";
 
 interface Addon {
   id: number;
@@ -41,11 +42,14 @@ interface CartDrink {
 }
 
 interface Inventory {
+  ingredient: string;
+  quantityNeeded: number;
+}
+interface Recipe {
   id: string;
   ingredient: string;
   quantity: number;
 }
-
 interface User {
   name: string;
   access_token: string;
@@ -66,6 +70,7 @@ export default function EmployeePage() {
   const [total, setTotal] = useState(0);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [ingredients, setIngredients] = useState<Inventory[]>([]);
+  const [recipe, setIngredient] = useState<Recipe[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [drinks, setDrinks] = useState<Drink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,6 +105,7 @@ export default function EmployeePage() {
         if (!inventoryRes.ok) throw new Error("Не удалось загрузить запасы");
         const inventoryData = await inventoryRes.json();
         setIngredients(inventoryData.data || []);
+        setIngredient(inventoryData.data || []);
 
         const addonsRes = await fetch("http://localhost:5000/api/addons/get-all-addons", {
           method: "GET",
@@ -147,12 +153,12 @@ export default function EmployeePage() {
         const itemsToMap = productData.data || productData || [];
         const mappedMenuItems = Array.isArray(itemsToMap)
           ? itemsToMap.map((item: any) => ({
-              id: item.id.toString(),
-              name: item.name || `Product ${item.id}`,
-              description: item.description || "No description",
-              price: typeof item.price === "string" ? parseFloat(item.price) : item.price || 0,
-              category: mapCategory(item.category),
-            }))
+            id: item.id.toString(),
+            name: item.name || `Product ${item.id}`,
+            description: item.description || "No description",
+            price: typeof item.price === "string" ? parseFloat(item.price) : item.price || 0,
+            category: mapCategory(item.category),
+          }))
           : [];
         setMenuItems(mappedMenuItems);
       } catch (err: any) {
@@ -464,21 +470,21 @@ export default function EmployeePage() {
                               <span className="font-bold text-green-600">
                                 {("category" in item
                                   ? (item.price +
-                                      (item.addonIds?.reduce(
-                                        (sum, id) => sum + (addons.find((a) => a.id === id)?.price || 0),
-                                        0
-                                      ) || 0) +
-                                      Object.values(item.sauceQuantities || {}).reduce((sum, qty) => {
-                                        const addonId = Object.keys(item.sauceQuantities || {}).find(
-                                          (key) => item.sauceQuantities![key] === qty
-                                        );
-                                        if (addonId) {
-                                          const addon = addons.find((a) => a.id === parseInt(addonId));
-                                          return sum + (addon?.price || 0) * qty;
-                                        }
-                                        return sum;
-                                      }, 0)) *
-                                    item.quantity
+                                    (item.addonIds?.reduce(
+                                      (sum, id) => sum + (addons.find((a) => a.id === id)?.price || 0),
+                                      0
+                                    ) || 0) +
+                                    Object.values(item.sauceQuantities || {}).reduce((sum, qty) => {
+                                      const addonId = Object.keys(item.sauceQuantities || {}).find(
+                                        (key) => item.sauceQuantities![key] === qty
+                                      );
+                                      if (addonId) {
+                                        const addon = addons.find((a) => a.id === parseInt(addonId));
+                                        return sum + (addon?.price || 0) * qty;
+                                      }
+                                      return sum;
+                                    }, 0)) *
+                                  item.quantity
                                   : item.price * item.quantity
                                 ).toFixed(2)}
                                 ₼
@@ -554,39 +560,48 @@ export default function EmployeePage() {
                 </CardTitle>
                 <CardDescription>Текущие остатки ингредиентов (только просмотр)</CardDescription>
               </CardHeader>
+
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {ingredients.length > 0 ? (
-                    ingredients.map((ingredient) => (
-                      <div key={ingredient.id} className="border rounded-lg p-4">
-                        <h3 className="font-medium mb-2">{ingredient.ingredient}</h3>
-                        <div className="flex justify-between items-center">
-                          <span className="text-2xl font-bold text-blue-600">{ingredient.quantity}</span>
+                  {recipe.length > 0 ? (
+                    recipe.map((recipe) => {
+                      const isGrams = recipe.quantity === 50; // Use quantity instead of quantityNeeded
+                      const quantityText = isGrams
+                        ? `${recipe.quantity} qram`
+                        : `${recipe.quantity} ədəd`; // Use quantity to display the text
+
+                      return (
+                        <div key={recipe.id} className="border rounded-lg p-4">
+                          <h3 className="font-medium mb-2">{recipe.ingredient}</h3>
+                          <div className="flex justify-between items-center">
+                            <span className="text-2xl font-bold text-blue-600">{quantityText}</span>
+                          </div>
+                          <div className="mt-2">
+                            <Badge
+                              variant={
+                                recipe.quantity > 10
+                                  ? "default"
+                                  : recipe.quantity > 5
+                                    ? "secondary"
+                                    : "destructive"
+                              }
+                            >
+                              {recipe.quantity > 10
+                                ? "В наличии"
+                                : recipe.quantity > 5
+                                  ? "Мало"
+                                  : "Критично мало"}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="mt-2">
-                          <Badge
-                            variant={
-                              ingredient.quantity > 10
-                                ? "default"
-                                : ingredient.quantity > 5
-                                ? "secondary"
-                                : "destructive"
-                            }
-                          >
-                            {ingredient.quantity > 10
-                              ? "В наличии"
-                              : ingredient.quantity > 5
-                              ? "Мало"
-                              : "Критично мало"}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <p className="text-gray-500 text-center">Нет данных об ингредиентах</p>
                   )}
                 </div>
               </CardContent>
+
             </Card>
           </TabsContent>
         </Tabs>
