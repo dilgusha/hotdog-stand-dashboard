@@ -37,7 +37,7 @@
 // }
 
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from "typeorm";
 import { Inventory } from "./Inventory.model";
 import { Addon } from "./AddOn.model";
 import { CommonEntity } from "./Common.model";
@@ -60,8 +60,10 @@ export class Product extends CommonEntity {
   @ManyToMany(() => Inventory, (inventory) => inventory.products)
   ingredients: Inventory[];  // Məhsulun tərkibində istifadə olunan maddələr
 
-  @ManyToMany(() => Addon, (addon) => addon.products)
+  @ManyToMany(() => Addon, (addon) => addon.products, { eager: true })
+  @JoinTable()
   addons: Addon[];  // Məhsulun daxil olduğu əlavələr
 
-  //description: string; elave et
+  @Column({ type: "text" , nullable: true})
+  description: string; 
 }

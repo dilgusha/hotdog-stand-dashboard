@@ -27,13 +27,17 @@ export const ProductController = {
   },
 
   getAll: async (req: Request, res: Response) => {
-    try {
-      const products = await getAllProducts();
-      res.status(200).json(products);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get products" });
-    }
-  },
+  try {
+    const products = await getAllProducts();
+    res.status(200).json(products);
+  } catch (error) {
+    console.error("Controller Error:", error);
+    res.status(500).json({
+      message: "Failed to get products",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+},
 
   getById: async (req: Request, res: Response) => {
     try {

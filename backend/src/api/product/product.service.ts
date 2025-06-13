@@ -21,8 +21,19 @@ export const createProduct = async (dto: CreateProductDTO) => {
 };
 
 export const getAllProducts = async () => {
-  const products = await Product.find();
-  return products;
+  try {
+    const products = await Product.find({
+      relations: ["addons"],
+      select: ["id", "name", "price", "category", "description", "addons"],
+    });
+    return products.map((product) => ({
+      ...product,
+      addonIds: product.addons.map((addon) => addon.id),
+    }));
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw new Error("Failed to get products: " + (error instanceof Error ? error.message : "Unknown error"));
+  }
 };
 
 export const getProductById = async (id: number) => {
