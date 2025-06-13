@@ -287,13 +287,13 @@ export default function EmployeePage() {
 
 
     const orderPayload = {
-      userId: parseInt(user.name), // Əgər `user.name` əvəzinə `user.id` varsa, onu istifadə et
+      userId: parseInt(user.name),
       items: cart.map((item) => ({
         productId: parseInt(item.id),
         quantity: item.quantity,
         addonIds: item.addonIds || [],
         ingredientIds: Object.keys(item.sauceQuantities || {}).map(id => parseInt(id)),
-        drinkIds: item.drinkIds || [], // Include drinkIds in the order payload
+        drinkIds: item.drinkIds || [],
       })),
     };
 
@@ -356,6 +356,9 @@ export default function EmployeePage() {
   }
 
 
+
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -374,8 +377,6 @@ export default function EmployeePage() {
           </div>
         </div>
       </header>
-
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="menu" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -383,7 +384,12 @@ export default function EmployeePage() {
             <TabsTrigger value="inventory">Запасы ингредиентов</TabsTrigger>
           </TabsList>
 
-
+          <TabsContent value="menu" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+              </div>
+            </div>
+          </TabsContent>
           <TabsContent value="menu" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
@@ -413,9 +419,32 @@ export default function EmployeePage() {
                           <p className="text-gray-500 text-center">Нет доступных продуктов</p>
                         )}
                       </div>
+
                     </CardContent>
                   </Card>
+
                 ))}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-6">
+
+                    {drinks.length > 0 ? (
+                      drinks.map((drink) => (
+                        <div key={drink.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow mt-6">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="font-medium">{drink.name}</h3>
+                            <span className="font-bold text-green-600">{drink.price}₼</span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">{drink.description}</p>
+                          <Button onClick={() => addToCart({ ...drink, category: ProductCategory.HOTDOG, price: drink.price, id: drink.id.toString(), name: drink.name, description: drink.description })} size="sm" className="w-full">
+                            <Plus className="h-4 w-4 mr-2" /> Добавить
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center">Нет доступных напитков</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
 
@@ -476,21 +505,6 @@ export default function EmployeePage() {
                                 </div>
                               </div>
                             )}
-                            <div className="space-y-1 mt-2">
-                              <p className="text-xs font-medium text-gray-700">Напитки:</p>
-                              <div className="flex flex-wrap gap-1">
-                                {drinks.map((drink) => (
-                                  <Badge
-                                    key={drink.id}
-                                    variant={item.drinkIds?.includes(drink.id) ? "default" : "outline"}
-                                    className="cursor-pointer text-xs"
-                                    onClick={() => toggleDrink(item.id, drink.id)}
-                                  >
-                                    {drink.name} (+{drink.price}₼)
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
                           </div>
                         ))}
                         <Separator />
@@ -508,30 +522,6 @@ export default function EmployeePage() {
               </div>
             </div>
           </TabsContent>
-
-
-          {/* <TabsContent value="drinks" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {drinks.length > 0 ? (
-                drinks.map((drink) => (
-                  <div key={drink.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium">{drink.name}</h3>
-                      <span className="font-bold text-green-600">{drink.price}₼</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3">{drink.description}</p>
-                    <Button size="sm" className="w-full" onClick={() => addDrinkToCart(drink)}>
-                      <Plus className="h-4 w-4 mr-2" /> Добавить
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center">Нет доступных напитков</p>
-              )}
-            </div>
-          </TabsContent> */}
-
-
           <TabsContent value="inventory">
             <Card>
               <CardHeader>
@@ -569,28 +559,4 @@ export default function EmployeePage() {
       </div>
     </div>
   );
-
-
-  // New function to add drinks to cart
-  function addDrinkToCart(drink: Drink) {
-    const existingItem = cart.find((item) => item.id === drink.id.toString());
-    if (existingItem) {
-      setCart(cart.map((item) =>
-        item.id === drink.id.toString() ? { ...item, quantity: item.quantity + 1 } : item
-      ));
-    } else {
-      setCart([...cart, {
-        id: drink.id.toString(),
-        name: drink.name,
-        description: drink.description,
-        price: drink.price,
-        category: ProductCategory.HOTDOG, // Assign a default category (can be adjusted)
-        quantity: 1,
-        addonIds: [],
-        sauceQuantities: {},
-        drinkIds: [drink.id], // Track the drink ID
-      }]);
-    }
-  }
 }
-

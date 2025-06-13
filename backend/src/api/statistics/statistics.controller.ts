@@ -1,6 +1,6 @@
-// controllers/statistics.controller.ts
 import { Request, Response } from "express";
 import { StatisticsService } from "./statistics.service";
+
 
 export const getStatistics = async (req: Request, res: Response) => {
   try {

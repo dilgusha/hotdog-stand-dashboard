@@ -22,6 +22,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
   const drinkRepo = AppDataSource.getRepository(Drink);
 
   let totalPrice = 0;
+  let totalQuantity = 0; // ✅ CHANGED: Track total quantity
   const orderItems: OrderItem[] = [];
 
   const user = await userRepo.findOneByOrFail({ id: userId });
@@ -39,6 +40,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
       orderItem.quantity = quantity;
 
       totalPrice += orderItem.price;
+      totalQuantity += quantity; // ✅ CHANGED: accumulate quantity
 
       // ingredient check via recipe
       const recipes = await recipeRepo.find({
@@ -59,7 +61,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
       }
       orderItem.ingredients = usedIngredients;
 
-      // === ✅ NEW: Handle drinks ===
+      // === ✅ Handle drinks ===
       if (item.drinkIds && Array.isArray(item.drinkIds)) {
         const drinks = await drinkRepo.findBy({ id: In(item.drinkIds) });
         orderItem.drinks = drinks;
@@ -95,7 +97,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
         }
       }
 
-      // === ✅ NEW: Handle drinks ===
+      // === ✅ Handle drinks (duplicate handling with inventory check)
       if (item.drinkIds && Array.isArray(item.drinkIds)) {
         const drinks = await drinkRepo.find({
           where: { id: In(item.drinkIds) },
@@ -121,18 +123,30 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
         }
       }
 
-
       await transactionalEntityManager.save(orderItem);
       orderItems.push(orderItem);
     }
 
     const order = new Order();
     order.createdBy = user;
-    order.totalAmount = totalPrice;
+    order.totalAmount = totalQuantity; // ✅ CHANGED: now stores item count
     order.price = totalPrice;
     order.items = orderItems;
 
     await transactionalEntityManager.save(order);
     return order;
   });
+};
+
+export const getAllOrders = async () => {
+  const orderRepo = AppDataSource.getRepository(Order);
+
+  const orders = await orderRepo.find({
+    order: {
+      created_at: "DESC", 
+    },
+    relations: ["createdBy", "items", "items.product"],
+  });
+
+  return orders;
 };

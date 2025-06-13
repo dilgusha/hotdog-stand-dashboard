@@ -20,6 +20,8 @@ import { useAuth } from "../../common/middlewares/auth.middleware";
 
 const orderRoutes = Router();
 
-orderRoutes.post("/create",useAuth, OrderController.createOrders); 
+orderRoutes.post("/make-order",  OrderController.createOrders); 
+orderRoutes.get("/get-all-orders", OrderController.getAllOrders); 
+
 
 export default orderRoutes;

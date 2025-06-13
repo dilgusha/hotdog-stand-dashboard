@@ -22,7 +22,7 @@ export class OrderController {
 }*/
 // order.controller.ts
 import { Request, Response } from "express";
-import { createOrder } from "./order.service";
+import { createOrder, getAllOrders } from "./order.service";
 
 export const OrderController = {
   createOrders: async (req: Request, res: Response) => {
@@ -49,4 +49,16 @@ export const OrderController = {
       return
     }
   },
+
+   getAllOrders : async (req: Request, res: Response) => {
+    try {
+      const orders = await getAllOrders();
+      res.status(200).json(orders);
+      return;
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders." });
+      return;
+    }
+  }
 };

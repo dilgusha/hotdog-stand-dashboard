@@ -32,8 +32,9 @@ export class Order extends CommonEntity {
   @JoinColumn({ name: "created_by" })
   createdBy: User;
 
-  @Column("decimal", { precision: 6, scale: 2 })
-  totalAmount: number;  // Ümumi qiymət
+  @Column({ type: 'int' })
+  totalAmount: number;
+
 
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order)
   items: OrderItem[];
