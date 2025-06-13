@@ -1,8 +1,9 @@
 "use client"
 
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,6 +11,7 @@ import { Plus, Minus, ShoppingCart, LogOut, Package } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
 import { ProductCategory } from "../../../backend/src/common/enum/product-category.enum"
+
 
 interface Addon {
   id: number;
@@ -19,6 +21,7 @@ interface Addon {
   category: ProductCategory;
 }
 
+
 interface MenuItem {
   id: string;
   name: string;
@@ -27,11 +30,14 @@ interface MenuItem {
   category: ProductCategory;
 }
 
+
 interface OrderItem extends MenuItem {
   quantity: number;
   addonIds?: number[];
   sauceQuantities?: Record<string, number>;
+  drinkIds?: number[]; // Add drinkIds to track drinks in the cart
 }
+
 
 interface Inventory {
   id: string;
@@ -39,12 +45,23 @@ interface Inventory {
   quantity: number;
 }
 
+
 interface User {
   name: string;
   access_token: string;
 }
 
+
+interface Drink {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+}
+
+
 type CategoryMap = { [key in ProductCategory]?: MenuItem[] };
+
 
 export default function EmployeePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -53,9 +70,10 @@ export default function EmployeePage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [ingredients, setIngredients] = useState<Inventory[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
+  const [drinks, setDrinks] = useState<Drink[]>([]); // Store drinks separately
   const [isLoading, setIsLoading] = useState(true);
-  const [drinks, setDrinks] = useState<any[]>([]);  // Add state for drinks
   const router = useRouter();
+
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -67,6 +85,7 @@ export default function EmployeePage() {
     setUser(JSON.parse(userData));
   }, [router]);
 
+
   useEffect(() => {
     const verifyUser = async () => {
       const userData = localStorage.getItem("user");
@@ -76,8 +95,10 @@ export default function EmployeePage() {
         return;
       }
 
+
       const parsedUser = JSON.parse(userData);
       const token = parsedUser.access_token;
+
 
       try {
         const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
@@ -88,6 +109,7 @@ export default function EmployeePage() {
         const inventoryData = await inventoryRes.json();
         setIngredients(inventoryData.data || []);
 
+
         const addonsRes = await fetch("http://localhost:5000/api/addons/get-all-addons", {
           method: "GET",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -95,6 +117,15 @@ export default function EmployeePage() {
         if (!addonsRes.ok) throw new Error("Не удалось загрузить дополнения");
         const addonsData = await addonsRes.json();
         setAddons(addonsData.data || []);
+
+
+        const drinksRes = await fetch("http://localhost:5000/api/drinks/get-all-drinks", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        });
+        if (!drinksRes.ok) throw new Error("Не удалось загрузить напитки");
+        const drinksData = await drinksRes.json();
+        setDrinks(drinksData.data || []);
       } catch (err: any) {
         toast({ title: "Ошибка авторизации", description: err.message || "Недействительный токен или ошибка сервера.", variant: "destructive" });
         localStorage.removeItem("user");
@@ -106,6 +137,7 @@ export default function EmployeePage() {
     verifyUser();
   }, [router]);
 
+
   useEffect(() => {
     const fetchProducts = async () => {
       const userData = localStorage.getItem("user");
@@ -115,6 +147,7 @@ export default function EmployeePage() {
       }
       const parsedUser = JSON.parse(userData);
       const token = parsedUser.access_token;
+
 
       try {
         const productResponse = await fetch("http://localhost:5000/api/products/get-all-products", {
@@ -140,6 +173,7 @@ export default function EmployeePage() {
     fetchProducts();
   }, [router]);
 
+
   const mapCategory = (category: string): ProductCategory => {
     const categoryMap: Record<string, ProductCategory> = {
       "hotdog": ProductCategory.HOTDOG,
@@ -151,6 +185,7 @@ export default function EmployeePage() {
     };
     return categoryMap[category.toUpperCase()] || categoryMap[category.toLowerCase()] || categoryMap[category.replace("-", "")] || ProductCategory.HOTDOG;
   };
+
 
   useEffect(() => {
     const newTotal = cart.reduce((sum, item) => {
@@ -166,19 +201,25 @@ export default function EmployeePage() {
         }
         return sum;
       }, 0);
-      return sum + (item.price * (item.quantity || 1)) + addonTotal + sauceTotal;
+      const drinkTotal = (item.drinkIds || []).reduce((drinkSum, drinkId) => {
+        const drink = drinks.find(d => d.id === drinkId);
+        return drinkSum + (drink?.price || 0) * (item.quantity || 1);
+      }, 0);
+      return sum + (item.price * (item.quantity || 1)) + addonTotal + sauceTotal + drinkTotal;
     }, 0);
     setTotal(newTotal);
-  }, [cart, addons]);
+  }, [cart, addons, drinks]);
+
 
   const addToCart = (item: MenuItem) => {
     const existingItem = cart.find((cartItem) => cartItem.id === item.id);
     if (existingItem) {
       setCart(cart.map((cartItem) => cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem));
     } else {
-      setCart([...cart, { ...item, quantity: 1, addonIds: [], sauceQuantities: {} }]);
+      setCart([...cart, { ...item, quantity: 1, addonIds: [], sauceQuantities: {}, drinkIds: [] }]);
     }
   };
+
 
   const updateQuantity = (id: string, change: number) => {
     setCart(cart.map((item) => {
@@ -189,6 +230,7 @@ export default function EmployeePage() {
       return item;
     }).filter(Boolean) as OrderItem[]);
   };
+
 
   const toggleAddon = (itemId: string, addonId: number) => {
     setCart(cart.map((item) => {
@@ -203,6 +245,7 @@ export default function EmployeePage() {
     }));
   };
 
+
   const updateSauceQuantity = (itemId: string, addonId: number, qty: number) => {
     setCart(cart.map((item) => {
       if (item.id === itemId) {
@@ -215,16 +258,33 @@ export default function EmployeePage() {
     }));
   };
 
+
+  const toggleDrink = (itemId: string, drinkId: number) => {
+    setCart(cart.map((item) => {
+      if (item.id === itemId) {
+        const hasDrink = item.drinkIds?.includes(drinkId);
+        return {
+          ...item,
+          drinkIds: hasDrink ? item.drinkIds?.filter(id => id !== drinkId) : [...(item.drinkIds || []), drinkId],
+        };
+      }
+      return item;
+    }));
+  };
+
+
   const submitOrder = async () => {
     if (!user) {
       toast({ title: "Ошибка", description: "Пользователь не найден", variant: "destructive" });
       return;
     }
 
+
     if (cart.length === 0) {
       toast({ title: "Корзина пуста", description: "Добавьте товары в заказ", variant: "destructive" });
       return;
     }
+
 
     const orderPayload = {
       userId: parseInt(user.name), // Əgər `user.name` əvəzinə `user.id` varsa, onu istifadə et
@@ -233,9 +293,10 @@ export default function EmployeePage() {
         quantity: item.quantity,
         addonIds: item.addonIds || [],
         ingredientIds: Object.keys(item.sauceQuantities || {}).map(id => parseInt(id)),
-        // Əgər drink dəstəyin varsa: drinkIds: [...],
+        drinkIds: item.drinkIds || [], // Include drinkIds in the order payload
       })),
     };
+
 
     try {
       const res = await fetch("http://localhost:5000/api/order/create", {
@@ -247,18 +308,21 @@ export default function EmployeePage() {
         body: JSON.stringify(orderPayload),
       });
 
+
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`Ошибка сервера: ${errorText}`);
       }
 
+
       const result = await res.json();
+
 
       toast({
         title: "Успешно",
         description: `Заказ создан на сумму ${result.totalAmount}₼`,
-
       });
+
 
       setCart([]);
     } catch (err: any) {
@@ -270,10 +334,12 @@ export default function EmployeePage() {
     }
   };
 
+
   const logout = () => {
     localStorage.removeItem("user");
     router.push("/");
   };
+
 
   const getCategoryName = (category: ProductCategory) => {
     const names: Record<ProductCategory, string> = {
@@ -284,9 +350,11 @@ export default function EmployeePage() {
     return names[category] || category;
   };
 
+
   if (!user || isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
   }
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -307,12 +375,14 @@ export default function EmployeePage() {
         </div>
       </header>
 
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="menu" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="menu">Меню и заказы</TabsTrigger>
             <TabsTrigger value="inventory">Запасы ингредиентов</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="menu" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -348,6 +418,7 @@ export default function EmployeePage() {
                 ))}
               </div>
 
+
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -375,7 +446,8 @@ export default function EmployeePage() {
                                       return sum + (addon?.price || 0) * qty;
                                     }
                                     return sum;
-                                  }, 0)) * item.quantity).toFixed(2)}₼
+                                  }, 0) +
+                                  (item.drinkIds?.reduce((sum, id) => sum + (drinks.find(d => d.id === id)?.price || 0), 0) || 0)) * item.quantity).toFixed(2)}₼
                               </span>
                             </div>
                             <div className="flex items-center gap-2 mb-2">
@@ -402,32 +474,23 @@ export default function EmployeePage() {
                                     </Badge>
                                   ))}
                                 </div>
-                                {/* <p className="text-xs font-medium text-gray-700 mt-2">Соусы (количество):</p> */}
-                                {/* {addons.map((addon) => (
-                                  <div key={addon.id} className="flex items-center gap-2 mt-1">
-                                    <span>{addon.name} (+{addon.price}₼):</span>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => updateSauceQuantity(item.id, addon.id, (item.sauceQuantities?.[addon.id.toString()] || 0) - 1)}
-                                      disabled={isLoading}
-                                    >
-                                      <Minus className="h-3 w-3" />
-                                    </Button>
-                                    <span>{item.sauceQuantities?.[addon.id.toString()] || 0}</span>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => updateSauceQuantity(item.id, addon.id, (item.sauceQuantities?.[addon.id.toString()] || 0) + 1)}
-                                      disabled={isLoading}
-                                    >
-                                      <Plus className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ))} */}
-
                               </div>
                             )}
+                            <div className="space-y-1 mt-2">
+                              <p className="text-xs font-medium text-gray-700">Напитки:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {drinks.map((drink) => (
+                                  <Badge
+                                    key={drink.id}
+                                    variant={item.drinkIds?.includes(drink.id) ? "default" : "outline"}
+                                    className="cursor-pointer text-xs"
+                                    onClick={() => toggleDrink(item.id, drink.id)}
+                                  >
+                                    {drink.name} (+{drink.price}₼)
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         ))}
                         <Separator />
@@ -445,6 +508,29 @@ export default function EmployeePage() {
               </div>
             </div>
           </TabsContent>
+
+
+          {/* <TabsContent value="drinks" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {drinks.length > 0 ? (
+                drinks.map((drink) => (
+                  <div key={drink.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium">{drink.name}</h3>
+                      <span className="font-bold text-green-600">{drink.price}₼</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">{drink.description}</p>
+                    <Button size="sm" className="w-full" onClick={() => addDrinkToCart(drink)}>
+                      <Plus className="h-4 w-4 mr-2" /> Добавить
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center">Нет доступных напитков</p>
+              )}
+            </div>
+          </TabsContent> */}
+
 
           <TabsContent value="inventory">
             <Card>
@@ -483,4 +569,28 @@ export default function EmployeePage() {
       </div>
     </div>
   );
+
+
+  // New function to add drinks to cart
+  function addDrinkToCart(drink: Drink) {
+    const existingItem = cart.find((item) => item.id === drink.id.toString());
+    if (existingItem) {
+      setCart(cart.map((item) =>
+        item.id === drink.id.toString() ? { ...item, quantity: item.quantity + 1 } : item
+      ));
+    } else {
+      setCart([...cart, {
+        id: drink.id.toString(),
+        name: drink.name,
+        description: drink.description,
+        price: drink.price,
+        category: ProductCategory.HOTDOG, // Assign a default category (can be adjusted)
+        quantity: 1,
+        addonIds: [],
+        sauceQuantities: {},
+        drinkIds: [drink.id], // Track the drink ID
+      }]);
+    }
+  }
 }
+
