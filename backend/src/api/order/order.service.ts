@@ -137,9 +137,9 @@ export const getAllOrders = async () => {
 
   const orders = await orderRepo.find({
     order: {
-      created_at: "DESC", 
+      created_at: "DESC",
     },
-    relations: ["createdBy", "items", "items.product"],
+    relations: ["createdBy", "items", "items.product", "items.drinks", "items.addons"],
   });
 
   return orders;

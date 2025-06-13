@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -160,7 +159,7 @@ export default function AdminPage() {
         console.log("Orders response status:", ordersRes.status);
         if (!ordersRes.ok) throw new Error("Не удалось загрузить заказы");
         const ordersData = await ordersRes.json();
-        console.log("Orders data:", ordersData);
+        console.log("Orders data:", JSON.stringify(ordersData, null, 2)); // Debug log
         setOrders(ordersData);
 
         console.log("Fetching inventory...");
@@ -492,9 +491,9 @@ export default function AdminPage() {
                           {order.items.map((item) => (
                             <div key={item.id}>
                               {item.product ? (
-                                `${item.product.name} x${item.quantity}`
+                                `${item.product.name} x${item.quantity || 1}`
                               ) : item.drinks && item.drinks.length > 0 ? (
-                                item.drinks.map((d) => `${d.name} x${item.quantity}`).join(", ")
+                                item.drinks.map((d) => `${d.name} x${item.quantity || 1}`).join(", ")
                               ) : (
                                 "Unknown Item"
                               )}
@@ -546,9 +545,9 @@ export default function AdminPage() {
                               {order.items.map((item) => (
                                 <div key={item.id} className="text-sm">
                                   {item.product ? (
-                                    `${item.product.name} x${item.quantity}`
+                                    `${item.product.name} x${item.quantity || 1}`
                                   ) : item.drinks && item.drinks.length > 0 ? (
-                                    item.drinks.map((d) => `${d.name} x${item.quantity}`).join(", ")
+                                    item.drinks.map((d) => `${d.name} x${item.quantity || 1}`).join(", ")
                                   ) : (
                                     "Unknown Item"
                                   )}
