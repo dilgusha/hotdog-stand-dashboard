@@ -1,14 +1,20 @@
-import { getAllAddons } from "./addon.service";
 import { Request, Response } from "express";
+import { getAllAddons } from "./addon.service";
 
-export const AddonController = {
-  getAll: async (req: Request, res: Response) => {
+
+export class AddonController {
+  constructor() {} // No dependencies if using static method
+
+  static async getAll(req: Request, res: Response) {
     try {
       const addons = await getAllAddons();
-      res.status(200).json(addons);
-      return
+      res.json({ success: true, data: addons });
     } catch (error) {
-      res.status(500).json({ message: "Failed to get addons" });
+      if (error instanceof Error) {
+        res.status(500).json({ success: false, message: error.message });
+      } else {
+        res.status(500).json({ success: false, message: "An unknown error occurred" });
+      }
     }
-  },
-};
+  }
+}

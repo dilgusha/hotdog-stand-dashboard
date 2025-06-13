@@ -18,10 +18,11 @@
 // }
 
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, ManyToOne, JoinColumn } from "typeorm";
 import { Product } from "./Product.model";
 import { OrderItem } from "./OrderItem.model";
 import { CommonEntity } from "./Common.model";
+import { Inventory } from "./Inventory.model";
 
 @Entity({ name: "addons" })
 export class Addon extends CommonEntity {
@@ -39,4 +40,9 @@ export class Addon extends CommonEntity {
 
   @ManyToMany(() => OrderItem, (orderItem) => orderItem.addons)
   orderItems: OrderItem[];  // Bu əlavəni içeren sifariş maddələri
+
+  
+  @ManyToOne(() => Inventory, (inventory) => inventory.id)
+  @JoinColumn({ name: "inventory_id" })
+  inventory: Inventory;
 }

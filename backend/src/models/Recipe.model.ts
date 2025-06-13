@@ -33,8 +33,8 @@ export class Recipe extends CommonEntity {
 
   @ManyToOne(() => Inventory, (inventory) => inventory.id)
   @JoinColumn({ name: "inventory_id" })
-  ingredient: Inventory; 
+  ingredient: Inventory;
 
   @Column("int")
-  quantityNeeded: number;  
+  quantityNeeded: number;
 }

@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
-import { updateInventoryItemQuantity, getInventories } from "./inventory.service";
+import { getDrinks, getInventories, updateInventoryItemQuantity } from "./inventory.service";
+;
 
 
 const updateInventoryQuantity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -38,7 +39,24 @@ const getInventory = async (req: Request, res: Response, next: NextFunction): Pr
     }
 }
 
+export const getDrink = async (req: Request, res: Response) => {
+  try {
+    const drinks = await getDrinks();
+    if (drinks.length === 0) {
+      res.status(404).json({ message: "No drinks found in the inventory" });
+      return;
+    }
+    res.json({ data: drinks });
+    return;
+  } catch (error) {
+    console.error("Error fetching drinks:", error);
+    res.status(500).json({ message: "Failed to fetch drinks" });
+    return;
+  }
+};
+
 export const InventoryController = () => ({
     updateInventoryQuantity,
-    getInventory
+    getInventory,
+    getDrink
 });
