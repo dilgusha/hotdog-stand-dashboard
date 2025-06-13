@@ -27,7 +27,7 @@ interface OrderItem {
   id: number;
   quantity: number;
   price: number;
-  product: { name: string } | null; // Allow product to be null
+  product: { name: string } | null;
   addons?: { name: string }[];
   drinks?: { name: string }[];
 }
@@ -491,11 +491,17 @@ export default function AdminPage() {
                         <div className="text-sm text-gray-600">
                           {order.items.map((item) => (
                             <div key={item.id}>
-                              {item.product ? `${item.product.name} x${item.quantity}` : "Unknown Product"}
+                              {item.product ? (
+                                `${item.product.name} x${item.quantity}`
+                              ) : item.drinks && item.drinks.length > 0 ? (
+                                item.drinks.map((d) => `${d.name} x${item.quantity}`).join(", ")
+                              ) : (
+                                "Unknown Item"
+                              )}
                               {item.addons && item.addons.length > 0 && (
                                 <span className="text-gray-500"> (+{item.addons.map((a) => a.name).join(", ")})</span>
                               )}
-                              {item.drinks && item.drinks.length > 0 && (
+                              {item.drinks && item.drinks.length > 0 && item.product && (
                                 <span className="text-gray-500"> (+{item.drinks.map((d) => d.name).join(", ")})</span>
                               )}
                             </div>
@@ -539,11 +545,17 @@ export default function AdminPage() {
                             <div className="space-y-1">
                               {order.items.map((item) => (
                                 <div key={item.id} className="text-sm">
-                                  {item.product ? `${item.product.name} x${item.quantity}` : "Unknown Product"}
+                                  {item.product ? (
+                                    `${item.product.name} x${item.quantity}`
+                                  ) : item.drinks && item.drinks.length > 0 ? (
+                                    item.drinks.map((d) => `${d.name} x${item.quantity}`).join(", ")
+                                  ) : (
+                                    "Unknown Item"
+                                  )}
                                   {item.addons && item.addons.length > 0 && (
                                     <span className="text-gray-500"> (+{item.addons.map((a) => a.name).join(", ")})</span>
                                   )}
-                                  {item.drinks && item.drinks.length > 0 && (
+                                  {item.drinks && item.drinks.length > 0 && item.product && (
                                     <span className="text-gray-500"> (+{item.drinks.map((d) => d.name).join(", ")})</span>
                                   )}
                                 </div>
@@ -626,4 +638,3 @@ export default function AdminPage() {
     </div>
   );
 }
-

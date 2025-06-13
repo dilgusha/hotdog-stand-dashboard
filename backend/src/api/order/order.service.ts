@@ -22,54 +22,44 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
   const drinkRepo = AppDataSource.getRepository(Drink);
 
   let totalPrice = 0;
-  let totalQuantity = 0; // ✅ CHANGED: Track total quantity
+  let totalQuantity = 0;
   const orderItems: OrderItem[] = [];
 
   const user = await userRepo.findOneByOrFail({ id: userId });
 
   await AppDataSource.transaction(async (transactionalEntityManager) => {
     for (const item of items) {
-      const product = await productRepo.findOneBy({ id: item.productId });
-      if (!product) continue;
-
-      const orderItem = new OrderItem();
       const quantity = item.quantity || 1;
-
-      orderItem.product = product;
-      orderItem.price = product.price * quantity;
+      const orderItem = new OrderItem();
       orderItem.quantity = quantity;
 
-      totalPrice += orderItem.price;
-      totalQuantity += quantity; // ✅ CHANGED: accumulate quantity
+      let basePrice = 0;
 
-      // ingredient check via recipe
-      const recipes = await recipeRepo.find({
-        where: { product: { id: product.id } },
-        relations: ["ingredient"],
-      });
+      // === ✅ Handle product and its recipe ===
+      if (item.productId) {
+        const product = await productRepo.findOneBy({ id: item.productId });
+        if (!product) throw new Error("Product not found.");
 
-      const usedIngredients: Inventory[] = [];
-      for (const r of recipes) {
-        const inventoryItem = await inventoryRepo.findOneBy({ id: r.ingredient.id });
-        if (inventoryItem && inventoryItem.quantity >= r.quantityNeeded * quantity) {
-          inventoryItem.quantity -= r.quantityNeeded * quantity;
-          await transactionalEntityManager.save(inventoryItem);
-          usedIngredients.push(inventoryItem);
-        } else {
-          throw new Error(`${inventoryItem?.quantity || 0} ${r.ingredient.ingredient} is not enough for ${quantity} ${product.name}`);
+        orderItem.product = product;
+        basePrice += product.price * quantity;
+
+        const recipes = await recipeRepo.find({
+          where: { product: { id: product.id } },
+          relations: ["ingredient"],
+        });
+
+        const usedIngredients: Inventory[] = [];
+        for (const r of recipes) {
+          const inventoryItem = await inventoryRepo.findOneBy({ id: r.ingredient.id });
+          if (inventoryItem && inventoryItem.quantity >= r.quantityNeeded * quantity) {
+            inventoryItem.quantity -= r.quantityNeeded * quantity;
+            await transactionalEntityManager.save(inventoryItem);
+            usedIngredients.push(inventoryItem);
+          } else {
+            throw new Error(`${inventoryItem?.quantity || 0} ${r.ingredient.ingredient} is not enough for ${quantity} ${product.name}`);
+          }
         }
-      }
-      orderItem.ingredients = usedIngredients;
-
-      // === ✅ Handle drinks ===
-      if (item.drinkIds && Array.isArray(item.drinkIds)) {
-        const drinks = await drinkRepo.findBy({ id: In(item.drinkIds) });
-        orderItem.drinks = drinks;
-
-        for (const drink of drinks) {
-          totalPrice += drink.price * quantity;
-          orderItem.price += drink.price * quantity;
-        }
+        orderItem.ingredients = usedIngredients;
       }
 
       // === ✅ Handle Addons ===
@@ -78,6 +68,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
           where: { id: In(item.addonIds) },
           relations: ["inventory"],
         });
+
         orderItem.addons = addons;
 
         for (const addon of addons) {
@@ -86,8 +77,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
             if (inventoryItem && inventoryItem.quantity >= quantity) {
               inventoryItem.quantity -= quantity;
               await transactionalEntityManager.save(inventoryItem);
-              totalPrice += addon.price * quantity;
-              orderItem.price += addon.price * quantity;
+              basePrice += addon.price * quantity;
             } else {
               throw new Error(`${inventoryItem?.quantity || 0} ${addon.name} is not enough`);
             }
@@ -97,7 +87,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
         }
       }
 
-      // === ✅ Handle drinks (duplicate handling with inventory check)
+      // === ✅ Handle Drinks ===
       if (item.drinkIds && Array.isArray(item.drinkIds)) {
         const drinks = await drinkRepo.find({
           where: { id: In(item.drinkIds) },
@@ -107,6 +97,8 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
         orderItem.drinks = drinks;
 
         for (const drink of drinks) {
+          basePrice += drink.price * quantity;
+
           if (!drink.inventory) {
             throw new Error(`Drink ${drink.name} is not linked to any inventory item.`);
           }
@@ -115,13 +107,15 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
           if (inventoryItem && inventoryItem.quantity >= quantity) {
             inventoryItem.quantity -= quantity;
             await transactionalEntityManager.save(inventoryItem);
-            totalPrice += drink.price * quantity;
-            orderItem.price += drink.price * quantity;
           } else {
             throw new Error(`${inventoryItem?.quantity || 0} ${drink.name} is not enough`);
           }
         }
       }
+
+      orderItem.price = basePrice;
+      totalPrice += basePrice;
+      totalQuantity += quantity;
 
       await transactionalEntityManager.save(orderItem);
       orderItems.push(orderItem);
@@ -129,7 +123,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
 
     const order = new Order();
     order.createdBy = user;
-    order.totalAmount = totalQuantity; // ✅ CHANGED: now stores item count
+    order.totalAmount = totalQuantity;
     order.price = totalPrice;
     order.items = orderItems;
 
