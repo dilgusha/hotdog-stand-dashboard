@@ -1,33 +1,43 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, CalendarDays, TrendingUp, Package, Settings, LogOut, Plus, Edit, Trash2, Minus } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { toast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, CalendarDays, TrendingUp, Package, Settings, LogOut, Plus, Edit, Trash2, Minus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "@/hooks/use-toast";
 
 interface MenuItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  category: string
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+}
+
+interface OrderItem {
+  id: number;
+  quantity: number;
+  price: number;
+  product: { name: string };
+  addons?: { name: string }[];
+  drinks?: { name: string }[];
 }
 
 interface Order {
-  id: string
-  items: any[]
-  total: number
-  timestamp: string
-  employee: string
+  id: string;
+  items: OrderItem[];
+  totalAmount: number;
+  price: number;
+  createdBy: { name: string };
+  created_at: string;
 }
 
 interface Inventory {
@@ -35,396 +45,347 @@ interface Inventory {
   ingredient: string;
   quantity: number;
 }
+
+interface Statistics {
+  todayRevenue: number;
+  monthRevenue: number;
+  totalRevenue: number;
+  todayOrders: number;
+  monthOrders: number;
+  totalOrders: number;
+}
+
 export default function AdminPage() {
-  const [ingredients, setIngredients] = useState<Inventory[]>([]);  // Envanter state'i
-  const [user, setUser] = useState<any>(null)
-  const [orders, setOrders] = useState<Order[]>([])
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
-  // const [ingredients, setIngredients] = useState([
-  //   { id: "1", name: "Булочки для хот-догов", quantity: 45, unit: "шт" },
-  //   { id: "2", name: "Говяжьи сосиски", quantity: 38, unit: "шт" },
-  //   { id: "3", name: "Сыр чеддер", quantity: 2.5, unit: "кг" },
-  //   { id: "4", name: "Кетчуп", quantity: 1.2, unit: "л" },
-  //   { id: "5", name: "Горчица", quantity: 0.8, unit: "л" },
-  //   { id: "6", name: "Халапеньо", quantity: 0.5, unit: "кг" },
-  //   { id: "7", name: "Картофель", quantity: 8, unit: "кг" },
-  //   { id: "8", name: "Куриное филе", quantity: 3, unit: "кг" },
-  //   { id: "9", name: "Моцарелла", quantity: 1.5, unit: "кг" },
-  // ])
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
-  const [newItem, setNewItem] = useState<Partial<MenuItem>>({})
-  const [isAddingItem, setIsAddingItem] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+  const [ingredients, setIngredients] = useState<Inventory[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [statistics, setStatistics] = useState<Statistics | null>(null);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [newItem, setNewItem] = useState<Partial<MenuItem>>({});
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
-  const initialMenuItems: MenuItem[] = [
-    { id: "1", name: "Classic Dog", description: "Говяжий хот-дог, булочка, кетчуп и горчица", price: 250, category: "hotdogs" },
-    { id: "2", name: "Cheese Dog", description: "Говяжий хот-дог, булочка, расплавленный сыр", price: 290, category: "hotdogs" },
-    { id: "3", name: "Spicy Dog", description: "Говяжий хот-дог, булочка, острый соус и халапеньо", price: 310, category: "hotdogs" },
-    { id: "4", name: "Italian Dog", description: "Говяжий хот-дог, булочка, песто и пармезан", price: 340, category: "hotdogs" },
-    { id: "5", name: "BBQ Crunch Dog", description: "Говяжий хот-дог, булочка, BBQ соус и хрустящий лук", price: 320, category: "hotdogs" },
-    { id: "6", name: "Honey Mustard Dog", description: "Говяжий хот-дог, булочка, медовая горчица и соленые огурцы", price: 300, category: "hotdogs" },
-    { id: "7", name: "Куриные наггетсы (6 шт)", description: "Хрустящие куриные наггетсы", price: 180, category: "sides" },
-    { id: "8", name: "Картофель фри", description: "Золотистый картофель фри", price: 120, category: "sides" },
-    { id: "9", name: "Моцарелла стикс (5 шт)", description: "Жареные палочки моцареллы", price: 200, category: "sides" },
-    { id: "10", name: "Animal Style Fries", description: "Картофель фри с соусом и луком", price: 160, category: "sides" },
-    { id: "11", name: "Кола", description: "Классическая кола", price: 80, category: "drinks" },
-    { id: "12", name: "Кола Зеро", description: "Кола без сахара", price: 80, category: "drinks" },
-    { id: "13", name: "Спрайт", description: "Лимонно-лаймовый напиток", price: 80, category: "drinks" },
-    { id: "14", name: "Fuse Tea Лимон", description: "Чай с лимоном", price: 90, category: "drinks" },
-    { id: "15", name: "Fuse Tea Персик", description: "Чай с персиком", price: 90, category: "drinks" },
-    { id: "16", name: "Fuse Tea Манго", description: "Чай с манго", price: 90, category: "drinks" },
-  ]
+ useEffect(() => {
+  const verifyUser = async () => {
+    console.log("=== Starting verification at", new Date().toLocaleString(), "===");
+    const userData = localStorage.getItem("user");
+    console.log("LocalStorage user data:", userData);
+    if (!userData) {
+      console.log("No user data found, triggering login redirect");
+      toast({
+        title: "Требуется вход",
+        description: "Пожалуйста, войдите в систему.",
+        variant: "destructive",
+      });
+      router.push("/");
+      setIsLoading(false); // Stop loading if no user
+      return;
+    }
 
-  useEffect(() => {
-    const verifyUser = async () => {
-      const userData = localStorage.getItem("user");
-      if (!userData) {
+    let parsedUser;
+    try {
+      parsedUser = JSON.parse(userData);
+    } catch (parseError) {
+      console.error("Failed to parse user data:", parseError);
+      toast({
+        title: "Ошибка",
+        description: "Недействительные данные пользователя",
+        variant: "destructive",
+      });
+      localStorage.removeItem("user");
+      router.push("/");
+      setIsLoading(false);
+      return;
+    }
+    const token = parsedUser.access_token;
+    console.log("Extracted token:", token);
+
+    try {
+      console.log("Sending auth verify request...");
+      const verifyRes = await fetch("http://localhost:5000/api/auth/verify", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Auth verify response status:", verifyRes.status);
+      if (!verifyRes.ok) throw new Error("Недействительный токен");
+
+      const userDataJson = await verifyRes.json();
+      console.log("Auth verify response data:", userDataJson);
+      if (userDataJson.role !== "ADMIN") {
+        console.log("User role is not ADMIN, redirecting:", userDataJson.role);
         toast({
-          title: "Требуется вход",
-          description: "Пожалуйста, войдите в систему.",
+          title: "Доступ запрещен",
+          description: "Эта страница только для администраторов.",
           variant: "destructive",
         });
-        router.push("/");
+        router.push(userDataJson.role === "USER" ? "/employee" : "/");
+        setIsLoading(false);
         return;
       }
 
-      const parsedUser = JSON.parse(userData);
-      const token = parsedUser.access_token;
+      setUser(userDataJson);
+      console.log("User state updated:", userDataJson);
 
-      try {
-        const res = await fetch("http://localhost:5000/api/auth/verify", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+      console.log("Fetching statistics...");
+      const statsRes = await fetch("http://localhost:5000/api/statistics/get-all-statistics", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-        if (!res.ok) {
-          throw new Error("Недействительный токен");
-        }
+      console.log("Statistics response status:", statsRes.status);
+      if (!statsRes.ok) throw new Error("Не удалось загрузить статистику");
+      const statsData = await statsRes.json();
+      console.log("Statistics data:", statsData);
+      setStatistics(statsData);
 
-        const data = await res.json();
-        if (data.role !== "ADMIN") {
-          toast({
-            title: "Доступ запрещен",
-            description: "Эта страница только для администраторов.",
-            variant: "destructive",
-          });
-          router.push(data.role === "USER" ? "/employee" : "/");
-          return;
-        }
+      console.log("Fetching orders...");
+      const ordersRes = await fetch("http://localhost:5000/api/order/get-all-orders", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-        setUser(data);
+      console.log("Orders response status:", ordersRes.status);
+      if (!ordersRes.ok) throw new Error("Не удалось загрузить заказы");
+      const ordersData = await ordersRes.json();
+      console.log("Orders data:", ordersData);
+      setOrders(ordersData);
 
-        // Load orders and menu from backend or localStorage
-        const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-        const savedMenu = JSON.parse(localStorage.getItem("menuItems") || "[]");
-        setOrders(savedOrders);
-        // setMenuItems(savedMenu.length > 0 ? savedMenu : initialMenuItems);
+      console.log("Fetching inventory...");
+      const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-        // Fetch inventory items
-        const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+      console.log("Inventory response status:", inventoryRes.status);
+      if (!inventoryRes.ok) throw new Error("Не удалось загрузить запасы");
+      const inventoryData = await inventoryRes.json();
+      console.log("Inventory data:", inventoryData);
+      setIngredients(inventoryData.data || inventoryData); // Handle nested or flat response
 
-        if (!inventoryRes.ok) {
-          throw new Error("Не удалось загрузить запасы");
-        }
+      console.log("Fetching menu...");
+      const menuRes = await fetch("http://localhost:5000/api/products/get-all-products", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-        const inventoryData = await inventoryRes.json();
-        setIngredients(inventoryData.data); // Assuming the response is { data: [...] }
-      } catch (err: any) { // Explicitly type err as 'any' or use type guard
-        toast({
-          title: "Ошибка авторизации",
-          description:
-            err instanceof Error ? err.message : "Недействительный токен или ошибка сервера.",
-          variant: "destructive",
-        });
-        localStorage.removeItem("user");
-        router.push("/");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    verifyUser();
-  }, [router]);
-  useEffect(() => {
-    if (menuItems.length > 0) {
-      localStorage.setItem("menuItems", JSON.stringify(menuItems))
+      console.log("Menu response status:", menuRes.status);
+      if (!menuRes.ok) throw new Error("Не удалось загрузить меню");
+      const menuData = await menuRes.json();
+      console.log("Menu data:", menuData);
+      setMenuItems(menuData.data || menuData); // Handle nested or flat response
+    } catch (err: any) {
+      console.error("Error occurred at", new Date().toLocaleString(), ":", err.message);
+      toast({
+        title: "Ошибка",
+        description: err.message || "Произошла ошибка при загрузке данных",
+        variant: "destructive",
+      });
+      localStorage.removeItem("user");
+      router.push("/");
+    } finally {
+      console.log("=== Loading complete at", new Date().toLocaleString(), "===");
+      setIsLoading(false);
     }
-  }, [menuItems])
+  };
+
+  verifyUser();
+}, [router]);
 
   const logout = () => {
-    localStorage.removeItem("user")
+    localStorage.removeItem("user");
     toast({
       title: "Выход",
       description: "Вы успешно вышли из системы.",
-    })
-    router.push("/")
-  }
+    });
+    router.push("/");
+  };
 
-  //  const [ingredients, setIngredients] = useState([]);
-  // const [isLoading, setIsLoading] = useState(true);
-  console.log("Ingredients data:", ingredients);
   const updateIngredient = async (ingredientId: string, newQuantity: number) => {
-  // Köhnə state-i saxla
-  const previousIngredients = [...ingredients];
+    const previousIngredients = [...ingredients];
+    const updated = ingredients.map((ingredient) =>
+      ingredient.id === ingredientId ? { ...ingredient, quantity: newQuantity } : ingredient
+    );
+    setIngredients(updated);
 
-  // Optimist yeniləmə
-  const updated = ingredients.map((ingredient) =>
-    ingredient.id === ingredientId
-      ? { ...ingredient, quantity: newQuantity }
-      : ingredient
-  );
-  setIngredients(updated);
-
-  const userData = localStorage.getItem("user");
-  if (!userData) {
-    toast({
-      title: "Ошибка авторизации",
-      description: "Пользователь не авторизован",
-      variant: "destructive",
-    });
-    setIngredients(previousIngredients); // Geri qaytar
-    return;
-  }
-
-  const parsedUser = JSON.parse(userData);
-  const token = parsedUser.access_token;
-
-  try {
-    const res = await fetch(`http://localhost:5000/api/inventory/${ingredientId}/quantity`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ quantity: newQuantity }),
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("API Error:", res.status, errorText);
-      throw new Error(`Failed to update ingredient quantity: ${res.status}`);
-    }
-
-    const updatedIngredient = updated.find((ing) => ing.id === ingredientId);
-    toast({
-      title: "Запасы обновлены",
-      description: `${updatedIngredient?.ingredient}: ${newQuantity}`,
-    });
-  } catch (error) {
-    console.error("Update ingredient error:", error);
-    setIngredients(previousIngredients); // Səhv olduqda köhnə state-i bərpa et
-    toast({
-      title: "Ошибка обновления",
-      description: "Не удалось обновить запасы",
-      variant: "destructive",
-    });
-  }
-};
-
-  // Alternative: Check your backend routes
-  // You can also add this function to test what endpoints are available:
-  const testInventoryEndpoints = async () => {
     const userData = localStorage.getItem("user");
-    if (!userData) return;
+    if (!userData) {
+      toast({
+        title: "Ошибка авторизации",
+        description: "Пользователь не авторизован",
+        variant: "destructive",
+      });
+      setIngredients(previousIngredients);
+      return;
+    }
 
     const parsedUser = JSON.parse(userData);
     const token = parsedUser.access_token;
 
-    // Test different endpoints to see which one works
-    const endpoints = [
-      `http://localhost:5000/api/inventory/1/quantity`,
-      `http://localhost:5000/api/inventory/1`,
-      `http://localhost:5000/api/inventory/update/1`,
-      `http://localhost:5000/api/inventory/update`,
-    ];
+    try {
+      const res = await fetch(`http://localhost:5000/api/inventory/${ingredientId}/quantity`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
 
-    for (const endpoint of endpoints) {
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to update ingredient quantity: ${errorText}`);
+      }
+
+      const updatedIngredient = updated.find((ing) => ing.id === ingredientId);
+      toast({
+        title: "Запасы обновлены",
+        description: `${updatedIngredient?.ingredient}: ${newQuantity}`,
+      });
+    } catch (error: any) {
+      setIngredients(previousIngredients);
+      toast({
+        title: "Ошибка обновления",
+        description: error.message || "Не удалось обновить запасы",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveMenuItem = async () => {
+    const userData = localStorage.getItem("user");
+    if (!userData) {
+      toast({
+        title: "Ошибка авторизации",
+        description: "Пользователь не авторизован",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    const token = parsedUser.access_token;
+
+    if (editingItem) {
       try {
-        console.log(`Testing endpoint: ${endpoint}`);
-        const res = await fetch(endpoint, {
-          method: "PUT",  // or try "PATCH"
+        const res = await fetch(`http://localhost:5000/api/products/update/${editingItem.id}`, {
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ quantity: 10 }),
+          body: JSON.stringify(editingItem),
         });
-        console.log(`${endpoint}: ${res.status} ${res.statusText}`);
-      } catch (error) {
-        console.log(`${endpoint}: Error - ${error}`);
-      }
-    }
-  };
-  // const updateIngredient = async (index: number, newQuantity: number) => {
-  //   const updated = [...ingredients];
-  //   updated[index] = { ...updated[index], quantity: newQuantity };
-  //   setIngredients(updated);  // frontend-i dərhal yenilə
 
-  //   const ingredientId = updated[index].id;
-  //   const token = localStorage.getItem("access_token");
-
-  //   try {
-  //     const res = await fetch(`http://localhost:5000/api/inventory/${ingredientId}/quantity`, {
-  //       method: "PUT",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //       body: JSON.stringify({ quantity: newQuantity }),
-  //     });
-
-  //     if (!res.ok) {
-  //       throw new Error("Failed to update ingredient quantity");
-  //     }
-
-  //     toast({
-  //       title: "Запасы обновлены",
-  //       description: `${updated[index].ingredient}: ${newQuantity}`,
-  //     });
-  //   } catch (error) {
-  //     toast({
-  //       title: "Ошибка обновления",
-  //       description: "Не удалось обновить запасы",
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
-
-
-  // const updateIngredient = (index: number, newQuantity: number) => {
-  //   const updated = [...ingredients]
-  //   updated[index].quantity = Math.max(0, newQuantity)
-  //   setIngredients(updated)
-  //   toast({
-  //     title: "Запасы обновлены",
-  //     description: `${updated[index].name}: ${newQuantity} ${updated[index].unit}`,
-  //   })
-  // }
-
-  const saveMenuItem = async () => {
-    if (editingItem) {
-      // Update existing item in the backend if editing
-      const res = await fetch(`http://localhost:5000/api/products/update/${editingItem.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editingItem),
-      });
-
-      if (res.ok) {
-        setMenuItems(menuItems.map(item => item.id === editingItem.id ? editingItem : item));
-        toast({ title: "Товар обновлен", description: "Изменения сохранены" });
-      } else {
-        toast({ title: "Ошибка", description: "Не удалось обновить товар" });
+        if (res.ok) {
+          setMenuItems(menuItems.map((item) => (item.id === editingItem.id ? editingItem : item)));
+          toast({ title: "Товар обновлен", description: "Изменения сохранены" });
+        } else {
+          throw new Error("Не удалось обновить товар");
+        }
+      } catch (error: any) {
+        toast({
+          title: "Ошибка",
+          description: error.message || "Не удалось обновить товар",
+          variant: "destructive",
+        });
       }
     } else if (newItem.name && newItem.description && newItem.price && newItem.category) {
-      // Send new item to backend
-      const token = localStorage.getItem("access_token"); // or get token from your app's state
-      console.log(token);
-      const res = await fetch("http://localhost:5000/api/products/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,  // Ensure the token is prefixed with 'Bearer'
-        },
-        body: JSON.stringify(newItem),
-      });
+      try {
+        const res = await fetch("http://localhost:5000/api/products/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(newItem),
+        });
 
-
-      // const res = await fetch("http://localhost:5000/api/products/create", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify(newItem),
-      // });
-
-      if (res.ok) {
-        const item = await res.json();
-        setMenuItems([...menuItems, item]);
-        toast({ title: "Товар добавлен", description: "Новый товар добавлен в меню" });
-        setNewItem({});  // Reset the form
-        setIsAddingItem(false);  // Close the dialog
-      } else {
-        toast({ title: "Ошибка", description: "Не удалось добавить товар" });
+        if (res.ok) {
+          const item = await res.json();
+          setMenuItems([...menuItems, item]);
+          toast({ title: "Товар добавлен", description: "Новый товар добавлен в меню" });
+          setNewItem({});
+          setIsAddingItem(false);
+        } else {
+          throw new Error("Не удалось добавить товар");
+        }
+      } catch (error: any) {
+        toast({
+          title: "Ошибка",
+          description: error.message || "Не удалось добавить товар",
+          variant: "destructive",
+        });
       }
     }
     setEditingItem(null);
   };
 
-  // const saveMenuItem = () => {
-  //   if (editingItem) {
-  //     setMenuItems(menuItems.map(item => 
-  //       item.id === editingItem.id ? editingItem : item
-  //     ))
-  //     toast({ title: "Товар обновлен", description: "Изменения сохранены" })
-  //   } else if (newItem.name && newItem.description && newItem.price && newItem.category) {
-  //     const item: MenuItem = {
-  //       id: Date.now().toString(),
-  //       name: newItem.name,
-  //       description: newItem.description,
-  //       price: newItem.price,
-  //       category: newItem.category
-  //     }
-  //     setMenuItems([...menuItems, item])
-  //     toast({ title: "Товар добавлен", description: "Новый товар добавлен в меню" })
-  //     setNewItem({})
-  //   }
-  //   setEditingItem(null)
-  //   setIsAddingItem(false)
-  // }
+  const deleteMenuItem = async (id: string) => {
+    const userData = localStorage.getItem("user");
+    if (!userData) {
+      toast({
+        title: "Ошибка авторизации",
+        description: "Пользователь не авторизован",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const deleteMenuItem = (id: string) => {
-    setMenuItems(menuItems.filter(item => item.id !== id))
-    toast({ title: "Товар удален", description: "Товар удален из меню" })
-  }
+    const parsedUser = JSON.parse(userData);
+    const token = parsedUser.access_token;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/products/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        setMenuItems(menuItems.filter((item) => item.id !== id));
+        toast({ title: "Товар удален", description: "Товар удален из меню" });
+      } else {
+        throw new Error("Не удалось удалить товар");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось удалить товар",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getCategoryName = (category: string) => {
     const names = {
       hotdogs: "Хот-доги",
       sides: "Гарниры",
-      drinks: "Напитки"
-    }
-    return names[category as keyof typeof names] || category
-  }
+      drinks: "Напитки",
+    };
+    return names[category as keyof typeof names] || category;
+  };
 
-  const getTotalRevenue = () => {
-    return orders.reduce((sum, order) => sum + order.total, 0)
-  }
-
-  const getDailyRevenue = () => {
-    const today = new Date().toDateString()
-    return orders
-      .filter(order => new Date(order.timestamp).toDateString() === today)
-      .reduce((sum, order) => sum + order.total, 0)
-  }
-
-  const getMonthlyRevenue = () => {
-    const currentMonth = new Date().getMonth()
-    const currentYear = new Date().getFullYear()
-    return orders
-      .filter(order => {
-        const orderDate = new Date(order.timestamp)
-        return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear
-      })
-      .reduce((sum, order) => sum + order.total, 0)
-  }
-
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>
-  if (!user) return null
-
-
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -436,9 +397,7 @@ export default function AdminPage() {
               <Badge variant="default" className="ml-3">Администратор</Badge>
             </div>
             <div className="flex items-center gap-4">
-              {/* <span className="text-sm text-gray-600">
-                Привет, {user.name}!
-              </span> */}
+              <span className="text-sm text-gray-600">Привет, {user.name}!</span>
               <Button variant="outline" size="sm" onClick={logout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Выйти
@@ -453,7 +412,7 @@ export default function AdminPage() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="stats">Статистика</TabsTrigger>
             <TabsTrigger value="orders">История заказов</TabsTrigger>
-            <TabsTrigger value="menu">Управление меню</TabsTrigger>
+            {/* <TabsTrigger value="menu">Управление меню</TabsTrigger> */}
             <TabsTrigger value="inventory">Запасы</TabsTrigger>
           </TabsList>
 
@@ -465,7 +424,12 @@ export default function AdminPage() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{getDailyRevenue()}₼</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {statistics ? `${statistics.todayRevenue}₼` : "0₼"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Заказов: {statistics ? statistics.todayOrders : 0}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -475,7 +439,12 @@ export default function AdminPage() {
                   <CalendarDays className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">{getMonthlyRevenue()}₼</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {statistics ? `${statistics.monthRevenue}₼` : "0₼"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Заказов: {statistics ? statistics.monthOrders : 0}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -485,7 +454,12 @@ export default function AdminPage() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">{getTotalRevenue()}₼</div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {statistics ? `${statistics.totalRevenue}₼` : "0₼"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Заказов: {statistics ? statistics.totalOrders : 0}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -499,22 +473,32 @@ export default function AdminPage() {
                   <p className="text-gray-500 text-center py-4">Заказов пока нет</p>
                 ) : (
                   <div className="space-y-4">
-                    {orders.slice(-5).reverse().map(order => (
+                    {orders.slice(-5).reverse().map((order) => (
                       <div key={order.id} className="border rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <p className="font-medium">Заказ #{order.id}</p>
-                            <p className="text-sm text-gray-600">Сотрудник: {order.employee}</p>
+                            <p className="text-sm text-gray-600">Сотрудник: {order.createdBy.name}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-green-600">{order.total}₼</p>
+                            <p className="font-bold text-green-600">{order.price}₼</p>
                             <p className="text-sm text-gray-600">
-                              {new Date(order.timestamp).toLocaleString('ru-RU')}
+                              {new Date(order.created_at).toLocaleString("ru-RU")}
                             </p>
                           </div>
                         </div>
                         <div className="text-sm text-gray-600">
-                          {order.items.map(item => `${item.name} x${item.quantity}`).join(', ')}
+                          {order.items.map((item) => (
+                            <div key={item.id}>
+                              {item.product.name} x{item.quantity}
+                              {item.addons && item.addons.length > 0 && (
+                                <span className="text-gray-500"> (+{item.addons.map((a) => a.name).join(", ")})</span>
+                              )}
+                              {item.drinks && item.drinks.length > 0 && (
+                                <span className="text-gray-500"> (+{item.drinks.map((d) => d.name).join(", ")})</span>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     ))}
@@ -545,24 +529,27 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orders.reverse().map(order => (
+                      {orders.reverse().map((order) => (
                         <TableRow key={order.id}>
                           <TableCell>#{order.id}</TableCell>
-                          <TableCell>{new Date(order.timestamp).toLocaleString('ru-RU')}</TableCell>
-                          <TableCell>{order.employee}</TableCell>
+                          <TableCell>{new Date(order.created_at).toLocaleString("ru-RU")}</TableCell>
+                          <TableCell>{order.createdBy.name}</TableCell>
                           <TableCell>
                             <div className="space-y-1">
-                              {order.items.map((item, idx) => (
-                                <div key={idx} className="text-sm">
-                                  {item.name} x{item.quantity}
-                                  {item.additions && item.additions.length > 0 && (
-                                    <span className="text-gray-500"> (+{item.additions.join(', ')})</span>
+                              {order.items.map((item) => (
+                                <div key={item.id} className="text-sm">
+                                  {item.product.name} x{item.quantity}
+                                  {item.addons && item.addons.length > 0 && (
+                                    <span className="text-gray-500"> (+{item.addons.map((a) => a.name).join(", ")})</span>
+                                  )}
+                                  {item.drinks && item.drinks.length > 0 && (
+                                    <span className="text-gray-500"> (+{item.drinks.map((d) => d.name).join(", ")})</span>
                                   )}
                                 </div>
                               ))}
                             </div>
                           </TableCell>
-                          <TableCell className="font-bold text-green-600">{order.total}₼</TableCell>
+                          <TableCell className="font-bold text-green-600">{order.price}₼</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -572,7 +559,7 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="menu">
+          {/* <TabsContent value="menu">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -621,7 +608,10 @@ export default function AdminPage() {
                         </div>
                         <div>
                           <Label htmlFor="category">Категория</Label>
-                          <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
+                          <Select
+                            value={newItem.category}
+                            onValueChange={(value) => setNewItem({ ...newItem, category: value })}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Выберите категорию" />
                             </SelectTrigger>
@@ -652,7 +642,7 @@ export default function AdminPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {menuItems.map(item => (
+                    {menuItems.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.description}</TableCell>
@@ -664,11 +654,7 @@ export default function AdminPage() {
                           <div className="flex gap-2">
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setEditingItem(item)}
-                                >
+                                <Button size="sm" variant="outline" onClick={() => setEditingItem(item)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
@@ -683,7 +669,9 @@ export default function AdminPage() {
                                       <Input
                                         id="editName"
                                         value={editingItem.name}
-                                        onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                                        onChange={(e) =>
+                                          setEditingItem({ ...editingItem, name: e.target.value })
+                                        }
                                       />
                                     </div>
                                     <div>
@@ -691,7 +679,9 @@ export default function AdminPage() {
                                       <Input
                                         id="editDescription"
                                         value={editingItem.description}
-                                        onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                                        onChange={(e) =>
+                                          setEditingItem({ ...editingItem, description: e.target.value })
+                                        }
                                       />
                                     </div>
                                     <div>
@@ -700,14 +690,18 @@ export default function AdminPage() {
                                         id="editPrice"
                                         type="number"
                                         value={editingItem.price}
-                                        onChange={(e) => setEditingItem({ ...editingItem, price: Number(e.target.value) })}
+                                        onChange={(e) =>
+                                          setEditingItem({ ...editingItem, price: Number(e.target.value) })
+                                        }
                                       />
                                     </div>
                                     <div>
                                       <Label htmlFor="editCategory">Категория</Label>
                                       <Select
                                         value={editingItem.category}
-                                        onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}
+                                        onValueChange={(value) =>
+                                          setEditingItem({ ...editingItem, category: value })
+                                        }
                                       >
                                         <SelectTrigger>
                                           <SelectValue />
@@ -726,11 +720,7 @@ export default function AdminPage() {
                                 )}
                               </DialogContent>
                             </Dialog>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteMenuItem(item.id)}
-                            >
+                            <Button size="sm" variant="destructive" onClick={() => deleteMenuItem(item.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -741,7 +731,7 @@ export default function AdminPage() {
                 </Table>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent> */}
 
           <TabsContent value="inventory">
             <Card>
@@ -750,9 +740,7 @@ export default function AdminPage() {
                   <Package className="h-5 w-5 mr-2" />
                   Управление запасами
                 </CardTitle>
-                <CardDescription>
-                  Обновляйте количество ингредиентов
-                </CardDescription>
+                <CardDescription>Обновляйте количество ингредиентов</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -767,18 +755,13 @@ export default function AdminPage() {
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        {/* <Input
-                          type="number"
-                          value={ingredient.quantity}
-                          onChange={(e) => updateIngredient(ingredient.id, Math.max(0, Number(e.target.value)))}
-                          className="text-center"
-                          min="0"
-                        /> */}
                         <input
                           type="number"
-                          value={ingredient.quantity} // State-dən dəyəri alın
-                          onChange={(e) => updateIngredient(ingredient.id, Math.max(0, Number(e.target.value)))}
-                          className="text-center"
+                          value={ingredient.quantity}
+                          onChange={(e) =>
+                            updateIngredient(ingredient.id, Math.max(0, Number(e.target.value)))
+                          }
+                          className="text-center w-16 border rounded"
                           min="0"
                         />
                         <Button
@@ -794,26 +777,25 @@ export default function AdminPage() {
                           ingredient.quantity > 10
                             ? "default"
                             : ingredient.quantity > 5
-                              ? "secondary"
-                              : "destructive"
+                            ? "secondary"
+                            : "destructive"
                         }
                         className="w-full justify-center"
                       >
                         {ingredient.quantity > 10
                           ? "В наличии"
                           : ingredient.quantity > 5
-                            ? "Мало"
-                            : "Критично мало"}
+                          ? "Мало"
+                          : "Критично мало"}
                       </Badge>
                     </div>
                   ))}
                 </div>
               </CardContent>
-
             </Card>
           </TabsContent>
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
