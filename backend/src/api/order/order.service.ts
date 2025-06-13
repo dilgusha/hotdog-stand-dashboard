@@ -5,9 +5,9 @@ import { Order } from "../../models/Order.model";
 import { OrderItem } from "../../models/OrderItem.model";
 import { Product } from "../../models/Product.model";
 import { Recipe } from "../../models/Recipe.model";
-import { ProductCategory } from "../../common/enum/product-category.enum";
 import { Addon } from "../../models/AddOn.model";
 import { User } from "../../models/User.model";
+import { Drink } from "../../models/Drink.model";
 
 export const createOrder = async (orderData: { userId: number; items: any[] }) => {
   const { userId, items } = orderData;
@@ -19,6 +19,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
   const recipeRepo = AppDataSource.getRepository(Recipe);
   const addonRepo = AppDataSource.getRepository(Addon);
   const userRepo = AppDataSource.getRepository(User);
+  const drinkRepo = AppDataSource.getRepository(Drink);
 
   let totalPrice = 0;
   const orderItems: OrderItem[] = [];
@@ -39,6 +40,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
 
       totalPrice += orderItem.price;
 
+      // ingredient check via recipe
       const recipes = await recipeRepo.find({
         where: { product: { id: product.id } },
         relations: ["ingredient"],
@@ -57,20 +59,18 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
       }
       orderItem.ingredients = usedIngredients;
 
-      if (item.ingredientIds && Array.isArray(item.ingredientIds)) {
-        const drinkInventories = await inventoryRepo.find({
-          where: { id: In(item.ingredientIds) },
-          relations: ["products"],
-        });
-        const validDrinks = drinkInventories.filter(inv =>
-          inv.products.some(p => p.category === ProductCategory.DRINK)
-        );
-        if (validDrinks.length !== item.ingredientIds.length) {
-          throw new Error("Some ingredients are not valid drinks");
+      // === ✅ NEW: Handle drinks ===
+      if (item.drinkIds && Array.isArray(item.drinkIds)) {
+        const drinks = await drinkRepo.findBy({ id: In(item.drinkIds) });
+        orderItem.drinks = drinks;
+
+        for (const drink of drinks) {
+          totalPrice += drink.price * quantity;
+          orderItem.price += drink.price * quantity;
         }
-        usedIngredients.push(...validDrinks);
       }
 
+      // === ✅ Handle Addons ===
       if (item.addonIds && Array.isArray(item.addonIds)) {
         const addons = await addonRepo.find({
           where: { id: In(item.addonIds) },
@@ -79,7 +79,7 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
         orderItem.addons = addons;
 
         for (const addon of addons) {
-          if (addon.inventory) { // Check if inventory exists
+          if (addon.inventory) {
             const inventoryItem = await inventoryRepo.findOneBy({ id: addon.inventory.id });
             if (inventoryItem && inventoryItem.quantity >= quantity) {
               inventoryItem.quantity -= quantity;
@@ -94,6 +94,33 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
           }
         }
       }
+
+      // === ✅ NEW: Handle drinks ===
+      if (item.drinkIds && Array.isArray(item.drinkIds)) {
+        const drinks = await drinkRepo.find({
+          where: { id: In(item.drinkIds) },
+          relations: ["inventory"],
+        });
+
+        orderItem.drinks = drinks;
+
+        for (const drink of drinks) {
+          if (!drink.inventory) {
+            throw new Error(`Drink ${drink.name} is not linked to any inventory item.`);
+          }
+
+          const inventoryItem = await inventoryRepo.findOneBy({ id: drink.inventory.id });
+          if (inventoryItem && inventoryItem.quantity >= quantity) {
+            inventoryItem.quantity -= quantity;
+            await transactionalEntityManager.save(inventoryItem);
+            totalPrice += drink.price * quantity;
+            orderItem.price += drink.price * quantity;
+          } else {
+            throw new Error(`${inventoryItem?.quantity || 0} ${drink.name} is not enough`);
+          }
+        }
+      }
+
 
       await transactionalEntityManager.save(orderItem);
       orderItems.push(orderItem);

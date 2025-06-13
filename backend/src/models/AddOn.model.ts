@@ -30,16 +30,16 @@ export class Addon extends CommonEntity {
   id: number;
 
   @Column()
-  name: string;  // Əlavənin adı (məsələn, "Extra Cheese", "Jalapeños")
+  name: string;  
 
   @Column("decimal", { precision: 6, scale: 2 })
-  price: number;  // Əlavənin qiyməti
+  price: number;  
 
   @ManyToMany(() => Product, (product) => product.addons)
-  products: Product[];  // Bu əlavənin daxil olduğu məhsullar
+  products: Product[];  
 
   @ManyToMany(() => OrderItem, (orderItem) => orderItem.addons)
-  orderItems: OrderItem[];  // Bu əlavəni içeren sifariş maddələri
+  orderItems: OrderItem[];  
 
   
   @ManyToOne(() => Inventory, (inventory) => inventory.id)

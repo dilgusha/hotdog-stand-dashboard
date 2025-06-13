@@ -30,6 +30,7 @@ import { Inventory } from "./Inventory.model";
 import { Order } from "./Order.model";
 import { Addon } from "./AddOn.model";
 import { CommonEntity } from "./Common.model";
+import { Drink } from "./Drink.model";
 
 @Entity({ name: "order_items" })
 export class OrderItem extends CommonEntity {
@@ -65,5 +66,13 @@ export class OrderItem extends CommonEntity {
     inverseJoinColumn: { name: "inventory_id", referencedColumnName: "id" },
   })
   ingredients: Inventory[];
+
+  @ManyToMany(() => Drink)
+  @JoinTable({
+    name: "order_item_drinks",
+    joinColumn: { name: "order_item_id", referencedColumnName: "id" },
+    inverseJoinColumn: { name: "drink_id", referencedColumnName: "id" },
+  })
+  drinks: Drink[];
 
 }

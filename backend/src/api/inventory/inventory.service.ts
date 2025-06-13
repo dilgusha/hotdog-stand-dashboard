@@ -24,17 +24,17 @@ export async function getInventories() {
 }
 
 
-export async function getDrinks() {
-  try {
-    // Find drinks and select only ingredient and price
-    const drinks = await inventoryRepository.find({
-      where: { isDrink: true },
-      select: ["ingredient", "price"],  // Only select ingredient and price
-    });
+// export async function getDrinks() {
+//   try {
+//     // Find drinks and select only ingredient and price
+//     const drinks = await inventoryRepository.find({
+//       where: { isDrink: true },
+//       select: ["ingredient", "price"],  // Only select ingredient and price
+//     });
 
-    return drinks;
-  } catch (error) {
-    console.error("Error fetching drinks:", error);
-    throw new Error("Failed to fetch drinks");
-  }
-}
+//     return drinks;
+//   } catch (error) {
+//     console.error("Error fetching drinks:", error);
+//     throw new Error("Failed to fetch drinks");
+//   }
+// }

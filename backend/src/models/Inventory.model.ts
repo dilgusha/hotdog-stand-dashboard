@@ -27,8 +27,8 @@ export class Inventory extends CommonEntity {
   @Column()
   ingredient: string;  // Maddənin adı (ingredient)
 
-  @Column("decimal", { precision: 6, scale: 2, nullable: true })
-  price: number | null; 
+  // @Column("decimal", { precision: 6, scale: 2, nullable: true })
+  // price: number | null; 
 
   @Column("int", { default: 0 })
   quantity: number;
@@ -36,6 +36,6 @@ export class Inventory extends CommonEntity {
   @ManyToMany(() => Product, (product) => product.ingredients)
   products: Product[];
 
-  @Column("boolean", { default: false }) // New field to mark if the ingredient is a drink
-  isDrink: boolean;
+  // @Column("boolean", { default: false }) // New field to mark if the ingredient is a drink
+  // isDrink: boolean;
 }

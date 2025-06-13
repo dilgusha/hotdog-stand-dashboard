@@ -9,5 +9,5 @@ const controller = InventoryController();
 
 inventoryRoutes.patch("/:id/quantity", useAuth, roleCheck([ERoleType.ADMIN]), controller.updateInventoryQuantity);
 inventoryRoutes.get("/", controller.getInventory);  
-inventoryRoutes.get("/drinks", controller.getDrink);  // Route to get drinks
+// inventoryRoutes.get("/drinks", controller.getDrink);  // Route to get drinks
 
