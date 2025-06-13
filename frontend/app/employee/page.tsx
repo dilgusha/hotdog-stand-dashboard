@@ -566,15 +566,15 @@ export default function EmployeePage() {
                   {recipe.length > 0 ? (
                     recipe.map((recipe) => {
                       const isGrams = recipe.quantity === 50; // Use quantity instead of quantityNeeded
-                      const quantityText = isGrams
-                        ? `${recipe.quantity} qram`
-                        : `${recipe.quantity} ədəd`; // Use quantity to display the text
+                      // const quantityText = isGrams
+                      //   ? `${recipe.quantity} qram`
+                      //   : `${recipe.quantity} ədəd`; // Use quantity to display the text
 
                       return (
                         <div key={recipe.id} className="border rounded-lg p-4">
                           <h3 className="font-medium mb-2">{recipe.ingredient}</h3>
                           <div className="flex justify-between items-center">
-                            <span className="text-2xl font-bold text-blue-600">{quantityText}</span>
+                            <span className="text-2xl font-bold text-blue-600">{recipe.quantity}</span>
                           </div>
                           <div className="mt-2">
                             <Badge
