@@ -43,13 +43,14 @@ interface CartDrink {
 
 interface Inventory {
   ingredient: string;
-  quantityNeeded: number;
+  quantity: number;
 }
 interface Recipe {
   id: string;
-  ingredient: string;
-  quantity: number;
+  ingredient: Inventory;
+  quantityNeeded: number;
 }
+
 interface User {
   name: string;
   access_token: string;
@@ -70,7 +71,7 @@ export default function EmployeePage() {
   const [total, setTotal] = useState(0);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [ingredients, setIngredients] = useState<Inventory[]>([]);
-  const [recipe, setIngredient] = useState<Recipe[]>([]);
+  const [recipe, setRecipe] = useState<Recipe[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [drinks, setDrinks] = useState<Drink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,7 +106,21 @@ export default function EmployeePage() {
         if (!inventoryRes.ok) throw new Error("Не удалось загрузить запасы");
         const inventoryData = await inventoryRes.json();
         setIngredients(inventoryData.data || []);
-        setIngredient(inventoryData.data || []);
+
+        // Fetch recipes
+        console.log("Fetching recipes...");
+        const recipeRes = await fetch("http://localhost:5000/api/recipe/recipes", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        console.log("Recipes response status:", recipeRes.status);
+        if (!recipeRes.ok) throw new Error("Не удалось загрузить рецепты");
+        const recipeData = await recipeRes.json();
+        console.log("Recipes data:", recipeData);
+        setRecipe(recipeData.data || recipeData);
 
         const addonsRes = await fetch("http://localhost:5000/api/addons/get-all-addons", {
           method: "GET",
@@ -123,15 +138,23 @@ export default function EmployeePage() {
         const drinksData = await drinksRes.json();
         setDrinks(drinksData.data || []);
       } catch (err: any) {
-        toast({ title: "Ошибка авторизации", description: err.message || "Недействительный токен или ошибка сервера.", variant: "destructive" });
+        console.error("Error occurred at", new Date().toLocaleString(), ":", err.message);
+        toast({
+          title: "Ошибка",
+          description: err.message || "Произошла ошибка при загрузке данных",
+          variant: "destructive",
+        });
         localStorage.removeItem("user");
         router.push("/");
       } finally {
+        console.log("=== Loading complete at", new Date().toLocaleString(), "===");
         setIsLoading(false);
       }
     };
     verifyUser();
   }, [router]);
+
+
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -560,35 +583,38 @@ export default function EmployeePage() {
                 </CardTitle>
                 <CardDescription>Текущие остатки ингредиентов (только просмотр)</CardDescription>
               </CardHeader>
-
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recipe.length > 0 ? (
-                    recipe.map((recipe) => {
-                      const isGrams = recipe.quantity === 50; // Use quantity instead of quantityNeeded
-                      // const quantityText = isGrams
-                      //   ? `${recipe.quantity} qram`
-                      //   : `${recipe.quantity} ədəd`; // Use quantity to display the text
+                    recipe.map((recipeItem) => {
+                      const isGrams = recipeItem.quantityNeeded > 10;
+                      const quantityText = isGrams
+                        ? `${recipeItem.ingredient.quantity} qram`
+                        : `${recipeItem.ingredient.quantity} ədəd`;
+                      const requiredText = isGrams
+                        ? `${recipeItem.quantityNeeded} qram`
+                        : `${recipeItem.quantityNeeded} ədəd`;
 
                       return (
-                        <div key={recipe.id} className="border rounded-lg p-4">
-                          <h3 className="font-medium mb-2">{recipe.ingredient}</h3>
-                          <div className="flex justify-between items-center">
-                            <span className="text-2xl font-bold text-blue-600">{recipe.quantity}</span>
+                        <div key={recipeItem.id} className="border rounded-lg p-4">
+                          <h3 className="font-medium mb-3">{recipeItem.ingredient.ingredient}</h3>
+                          <p className="text-sm text-gray-600 mb-2">Требуется: {requiredText}</p>
+                          <div className="mb-3">
+                            <span className="text-lg font-medium">{quantityText}</span>
                           </div>
                           <div className="mt-2">
                             <Badge
                               variant={
-                                recipe.quantity > 10
+                                recipeItem.ingredient.quantity > 10
                                   ? "default"
-                                  : recipe.quantity > 5
+                                  : recipeItem.ingredient.quantity > 5
                                     ? "secondary"
                                     : "destructive"
                               }
                             >
-                              {recipe.quantity > 10
+                              {recipeItem.ingredient.quantity > 10
                                 ? "В наличии"
-                                : recipe.quantity > 5
+                                : recipeItem.ingredient.quantity > 5
                                   ? "Мало"
                                   : "Критично мало"}
                             </Badge>
@@ -601,7 +627,6 @@ export default function EmployeePage() {
                   )}
                 </div>
               </CardContent>
-
             </Card>
           </TabsContent>
         </Tabs>
