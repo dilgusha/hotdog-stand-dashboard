@@ -9,6 +9,11 @@ const orderRoutes = Router();
 
 orderRoutes.post("/make-order", useAuth, OrderController.createOrders); 
 orderRoutes.get("/get-all-orders", useAuth, roleCheck([ERoleType.ADMIN]), OrderController.getAllOrders); 
-
+orderRoutes.get(
+  "/get-orders-page",
+  useAuth,
+  roleCheck([ERoleType.ADMIN]),
+  OrderController.getOrdersPage
+);
 
 export default orderRoutes;

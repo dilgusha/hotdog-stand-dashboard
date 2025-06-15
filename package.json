@@ -1,7 +1,9 @@
 {
   "name": "hotdog-stand",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\""
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "start": "concurrently \"npm run start --prefix backend\" \"npm run start --prefix frontend\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

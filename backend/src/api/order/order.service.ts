@@ -210,3 +210,42 @@ export const getAllOrders = async () => {
 
   return orders;
 };
+
+type OrdersPage = {
+  data: Order[];
+  nextCursor: string | null;
+};
+
+export const getOrdersPage = async (
+  cursor?: string,
+  limit = 10
+): Promise<OrdersPage> => {
+  const orderRepo = AppDataSource.getRepository(Order);
+
+  const qb = orderRepo
+    .createQueryBuilder("order")
+    .leftJoinAndSelect("order.createdBy", "user")
+    .leftJoinAndSelect("order.items", "item")
+    .leftJoinAndSelect("item.product", "product")
+    .leftJoinAndSelect("item.drinks", "drinks")
+    .leftJoinAndSelect("item.addons", "addons")
+    .orderBy("order.created_at", "DESC")
+    .take(limit + 1);
+
+  if (cursor) {
+    qb.where("order.created_at < :cursor", { cursor: new Date(cursor) });
+  }
+
+  const items = await qb.getMany();
+  const hasMore = items.length > limit;
+
+  if (hasMore) {
+    items.pop(); // extra nəticəni sil
+  }
+
+  const nextCursor = hasMore
+    ? items[items.length - 1].created_at.toISOString()
+    : null;
+
+  return { data: items, nextCursor };
+};

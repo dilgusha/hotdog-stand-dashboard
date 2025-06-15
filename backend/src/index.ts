@@ -1,9 +1,9 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
-import { routes } from "./src/routes";
-import { appConfig } from "./src/config/consts";
-import { AppDataSource } from "./src/config/data-source";
+import { routes } from "./routes";
+import { appConfig } from "./config/consts";
+import { AppDataSource } from "./config/data-source";
 
 const app = express();
 const port = Number(appConfig.PORT) || 5000; // Use env port or default to 5000

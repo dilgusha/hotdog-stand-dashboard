@@ -22,7 +22,7 @@ export class OrderController {
 }*/
 // order.controller.ts
 import { Request, Response } from "express";
-import { createOrder, getAllOrders } from "./order.service";
+import { createOrder, getAllOrders, getOrdersPage } from "./order.service";
 
 export const OrderController = {
   createOrders: async (req: Request, res: Response) => {
@@ -30,19 +30,19 @@ export const OrderController = {
       const orderData = req.body;
 
       if (!orderData || !Array.isArray(orderData.items) || orderData.items.length === 0) {
-         res.status(400).json({ message: "Order items are required" });
-         return
+        res.status(400).json({ message: "Order items are required" });
+        return
       }
 
       const order = await createOrder(orderData); // ✅ burada yalnız 1 param
-       res.status(201).json({
+      res.status(201).json({
         message: "Order placed successfully",
         order,
       });
       return
     } catch (error) {
       console.error("OrderController error:", error);
-       res.status(500).json({
+      res.status(500).json({
         message: "Failed to create order",
         error: error instanceof Error ? error.message : error,
       });
@@ -50,7 +50,7 @@ export const OrderController = {
     }
   },
 
-   getAllOrders : async (req: Request, res: Response) => {
+  getAllOrders: async (req: Request, res: Response) => {
     try {
       const orders = await getAllOrders();
       res.status(200).json(orders);
@@ -60,5 +60,17 @@ export const OrderController = {
       res.status(500).json({ message: "Failed to fetch orders." });
       return;
     }
+  },
+  getOrdersPage: async (req: Request, res: Response) => {
+    try {
+      const cursor = req.query.cursor as string | undefined;
+      const limit = Math.min(Number(req.query.limit) || 10, 50);
+
+      const paged = await getOrdersPage(cursor, limit);
+      res.status(200).json(paged);
+    } catch (error) {
+      console.error("Failed to fetch orders page:", error);
+      res.status(500).json({ message: "Failed to fetch orders page." });
+    }
   }
-};
+}

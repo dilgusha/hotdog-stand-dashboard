@@ -71,7 +71,10 @@ export default function AdminPage() {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({});
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);            // bütün səhifə üçün
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -155,19 +158,19 @@ export default function AdminPage() {
         setStatistics(statsData);
 
         console.log("Fetching orders...");
-        const ordersRes = await fetch("http://localhost:5000/api/order/get-all-orders", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        // const ordersRes = await fetch("http://localhost:5000/api/order/get-all-orders", {
+        //   method: "GET",
+        //   headers: {
+        //     Authorization: `Bearer ${token}`,
+        //     "Content-Type": "application/json",
+        //   },
+        // });
 
-        console.log("Orders response status:", ordersRes.status);
-        if (!ordersRes.ok) throw new Error("Не удалось загрузить заказы");
-        const ordersData = await ordersRes.json();
-        console.log("Orders data:", JSON.stringify(ordersData, null, 2));
-        setOrders(ordersData);
+        // console.log("Orders response status:", ordersRes.status);
+        // if (!ordersRes.ok) throw new Error("Не удалось загрузить заказы");
+        // const ordersData = await ordersRes.json();
+        // console.log("Orders data:", JSON.stringify(ordersData, null, 2));
+        // setOrders(ordersData);
 
         console.log("Fetching inventory...");
         const inventoryRes = await fetch("http://localhost:5000/api/inventory", {
@@ -406,8 +409,78 @@ export default function AdminPage() {
     return names[category as keyof typeof names] || category;
   };
 
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [hasMore, setHasMore] = useState(true);
+  const [maxPage, setMaxPage] = useState(1);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
+
+
+
+  const pageSize = 10;
+
+  const loadPage = async (targetPage: number) => {
+    if (loading || targetPage < 1) return;
+    const targetCursor = cursors[targetPage - 1];
+
+    setLoading(true);
+    try {
+      const token = JSON.parse(localStorage.getItem("user") || "{}")?.access_token;
+      const res = await fetch(
+        `http://localhost:5000/api/order/get-orders-page?cursor=${targetCursor || ""}&limit=${pageSize}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!res.ok) throw new Error("Не удалось загрузить заказы");
+
+      const { data, nextCursor } = (await res.json()) as { data: Order[]; nextCursor: string | null };
+
+      setOrders(data);
+      setHasMore(!!nextCursor);
+
+      // Update cursors array
+      setCursors(prev => {
+        const newArr = [...prev];
+        newArr[targetPage] = nextCursor || undefined;
+        return newArr;
+      });
+
+      setPage(targetPage);
+      setMaxPage(curr => (targetPage > curr && nextCursor ? targetPage : curr));
+      if (nextCursor) {
+        setMaxPage(prev => Math.max(prev, targetPage + 1));
+      }
+      if (nextCursor && targetPage === pages().length) {
+        setMaxPage(prev => Math.max(prev, targetPage + 1));
+      }
+    } catch (err: any) {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pages = () => {
+    const arr: (number | string)[] = [];
+    if (maxPage <= 5) {
+      for (let i = 1; i <= maxPage; i++) arr.push(i);
+    } else {
+      // first 3
+      arr.push(1, 2, 3, "…", maxPage);
+    }
+    return arr;
+  };
+
+  useEffect(() => {
+    loadPage(1);
+  }, []);
+
+
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
   if (!user) return null;
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -557,7 +630,7 @@ export default function AdminPage() {
                     </TableHeader>
                     <TableBody>
                       {orders.reverse().map((order) => (
-                        <TableRow key={order.id}>
+                        <TableRow key={`order-${order.id}`}>
                           <TableCell>#{order.id}</TableCell>
                           <TableCell>{new Date(order.created_at).toLocaleString("ru-RU")}</TableCell>
                           <TableCell>{order.createdBy.name}</TableCell>
@@ -587,7 +660,60 @@ export default function AdminPage() {
                       ))}
                     </TableBody>
                   </Table>
+
                 )}
+                {/* {hasMore && (
+                  <Button onClick={loadOrders} disabled={loadingOrders}>
+                    {loadingOrders ? "Загрузка..." : "Загрузить ещё"}
+                  </Button>
+                )} */}
+
+                <div className="flex items-center gap-2 mt-4">
+                  {/* <Button disabled={loading || page === 1} onClick={() => loadPage(page - 1)}>
+                    ←
+                  </Button>
+                  {pages().map((p, idx) =>
+                    p === "…" ? (
+                      <span key={`dot-${idx}`} className="px-2">...</span>
+                    ) : (
+                      <Button
+                        key={p}
+                        variant={p === page ? "default" : "outline"}
+                        disabled={loading}
+                        onClick={() => loadPage(Number(p))}
+                      >
+                        {p}
+                      </Button>
+                    )
+                  )}
+                  <Button disabled={loading || !hasMore} onClick={() => loadPage(page + 1)}>
+                    →
+                  </Button> */}
+
+                  <Button disabled={loading || page === 1} onClick={() => loadPage(page - 1)}>←</Button>
+                  <Button variant={page === 1 ? "default" : "outline"} disabled={loading} onClick={() => loadPage(1)}>1</Button>
+
+                  {page > 2 && maxPage > 3 && <span className="px-2">...</span>}
+
+                  {page > 2 && page < maxPage && (
+                    <Button variant="default" disabled>{page}</Button>
+                  )}
+
+                  {page < maxPage - 1 && page > 1 && (
+                    <Button variant="outline" disabled>{page + 1}</Button>
+                  )}
+
+                  {page < maxPage - 1 && maxPage > 2 && <span className="px-2">...</span>}
+
+                  {maxPage > 1 && (
+                    <Button variant={page === maxPage ? "default" : "outline"} disabled={loading} onClick={() => loadPage(maxPage)}>
+                      {maxPage}
+                    </Button>
+                  )}
+
+                  <Button disabled={loading || page === maxPage} onClick={() => loadPage(page + 1)}>→</Button>
+                </div>
+
               </CardContent>
             </Card>
           </TabsContent>
@@ -648,16 +774,16 @@ export default function AdminPage() {
                             ingredient.quantity > 10
                               ? "default"
                               : ingredient.quantity > 5
-                              ? "secondary"
-                              : "destructive"
+                                ? "secondary"
+                                : "destructive"
                           }
                           className="w-full justify-center"
                         >
                           {ingredient.quantity > 10
                             ? "В наличии"
                             : ingredient.quantity > 5
-                            ? "Мало"
-                            : "Критично мало"}
+                              ? "Мало"
+                              : "Критично мало"}
                         </Badge>
                       </div>
                     );
@@ -668,6 +794,6 @@ export default function AdminPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </div >
   );
 }
