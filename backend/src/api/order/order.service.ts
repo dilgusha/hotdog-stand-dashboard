@@ -7,11 +7,13 @@ import { Product } from "../../models/Product.model";
 import { Recipe } from "../../models/Recipe.model";
 import { Addon } from "../../models/AddOn.model";
 import { Drink } from "../../models/Drink.model";
+import { User } from "../../models/User.model";
 
-export const createOrder = async (orderData: { items: any[] }) => {
-  const { items } = orderData;
+export const createOrder = async (orderData: { userId: number; items: any[] }) =>  {
+  const { userId, items } = orderData;
 
   const orderRepo = AppDataSource.getRepository(Order);
+  const userRepo = AppDataSource.getRepository(User);
   const orderItemRepo = AppDataSource.getRepository(OrderItem);
   const productRepo = AppDataSource.getRepository(Product);
   const inventoryRepo = AppDataSource.getRepository(Inventory);
@@ -22,7 +24,7 @@ export const createOrder = async (orderData: { items: any[] }) => {
   let totalPrice = 0;
   let totalQuantity = 0;
   const orderItems: OrderItem[] = [];
-
+  const user = await userRepo.findOneByOrFail({ id: userId });
 
   try {
     await AppDataSource.transaction(async (transactionalEntityManager) => {
@@ -162,6 +164,7 @@ export const createOrder = async (orderData: { items: any[] }) => {
 
       const order = new Order();
       order.totalAmount = totalQuantity;
+      order.createdBy = user;
       order.price = totalPrice;
       order.items = orderItems;
 
