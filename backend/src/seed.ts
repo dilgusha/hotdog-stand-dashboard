@@ -83,33 +83,98 @@ const existingDrinksCount = await AppDataSource.getRepository(Drink).count(); //
             console.log("Add-ons already exist, skipping add-ons seeding.");
         } else {
             const addOnsData = [
-                { name: "Extra Cheese", price: 1, inventoryName: "Melted Cheese" },
-                { name: "Jalapeños", price: 0.7, inventoryName: "Jalapeños" },
-                { name: "Crispy Onions", price: 0.7, inventoryName: "Crispy Onions" },
-                { name: "Pickles", price: 0.5, inventoryName: "Pickles" },
-                { name: "Extra Ketchup", price: 0.5, inventoryName: "Ketchup" },
-                { name: "Extra Mustard", price: 0.5, inventoryName: "Mustard" },
-                { name: "Extra BBQ Sauce", price: 0.5, inventoryName: "BBQ Sauce" },
-                { name: "Extra Hot Sauce", price: 0.5, inventoryName: "Hot Sauce" },
-                { name: "Extra Honey Mustard", price: 0.5, inventoryName: "Honey Mustard" },
-                { name: "Extra House Sauces", price: 0.5, inventoryName: "House Sauces" },
-                { name: "Extra Basil Pesto", price: 0.5, inventoryName: "Basil Pesto" },
-                { name: "Double Hotdog", price: 3, inventoryName: "Beef Hotdog" },
-
+              {
+                name: "Extra Cheese",
+                price: 1,
+                inventoryName: "Melted Cheese",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Jalapeños",
+                price: 0.7,
+                inventoryName: "Jalapeños",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Crispy Onions",
+                price: 0.7,
+                inventoryName: "Crispy Onions",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Pickles",
+                price: 0.5,
+                inventoryName: "Pickles",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Extra Ketchup",
+                price: 0.5,
+                inventoryName: "Ketchup",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Extra Mustard",
+                price: 0.5,
+                inventoryName: "Mustard",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Extra BBQ Sauce",
+                price: 0.5,
+                inventoryName: "BBQ Sauce",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Extra Hot Sauce",
+                price: 0.5,
+                inventoryName: "Hot Sauce",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Extra Honey Mustard",
+                price: 0.5,
+                inventoryName: "Honey Mustard",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Extra House Sauces",
+                price: 0.5,
+                inventoryName: "House Sauces",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Extra Basil Pesto",
+                price: 0.5,
+                inventoryName: "Basil Pesto",
+                quantityNeeded: 50,
+              },
+              {
+                name: "Double Hotdog",
+                price: 3,
+                inventoryName: "Beef Hotdog",
+                quantityNeeded: 1,
+              },
             ];
+
             const inventories = await inventoryRepository.find();
-            const inventoryMap = new Map(inventories.map(inv => [inv.ingredient, inv]));
+            const inventoryMap = new Map(
+              inventories.map((inv) => [inv.ingredient, inv])
+            );
             for (const addOn of addOnsData) {
-                const addon = new Addon();
-                addon.name = addOn.name;
-                addon.price = addOn.price;
-                const inventory = inventoryMap.get(addOn.inventoryName); // Can be undefined
-                if (inventory) {
-                    addon.inventory = inventory; // Assign only if found
-                } else {
-                    throw new Error(`Inventory item ${addOn.inventoryName} not found for addon ${addOn.name}`);
-                }
-                await addOnRepository.save(addon);
+              const addon = new Addon();
+              addon.name = addOn.name;
+              addon.price = addOn.price;
+              addon.quantityNeeded = addOn.quantityNeeded;
+              const inventory = inventoryMap.get(addOn.inventoryName);
+              if (inventory) {
+                addon.inventory = inventory;
+              } else {
+                throw new Error(
+                  `Inventory item ${addOn.inventoryName} not found for addon ${addOn.name}`
+                );
+              }
+              await addOnRepository.save(addon);
             }
             console.log("Add-ons seeded successfully.");
         }

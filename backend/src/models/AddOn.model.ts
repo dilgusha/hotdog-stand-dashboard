@@ -41,6 +41,9 @@ export class Addon extends CommonEntity {
   @ManyToMany(() => OrderItem, (orderItem) => orderItem.addons)
   orderItems: OrderItem[];  
 
+  @Column("int", { nullable: true }) 
+  quantityNeeded: number;
+
   
   @ManyToOne(() => Inventory, (inventory) => inventory.id)
   @JoinColumn({ name: "inventory_id" })
