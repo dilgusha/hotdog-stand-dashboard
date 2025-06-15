@@ -8,8 +8,9 @@ import { Recipe } from "../../models/Recipe.model";
 import { Addon } from "../../models/AddOn.model";
 import { Drink } from "../../models/Drink.model";
 import { User } from "../../models/User.model";
+import { ProductCategory } from "../../common/enum/product-category.enum";
 
-export const createOrder = async (orderData: { userId: number; items: any[] }) =>  {
+export const createOrder = async (orderData: { userId: number; items: any[] }) => {
   const { userId, items } = orderData;
 
   const orderRepo = AppDataSource.getRepository(Order);
@@ -28,18 +29,17 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
 
   try {
     await AppDataSource.transaction(async (transactionalEntityManager) => {
-
       for (const item of items) {
-
         const quantity = item.quantity || 1;
         const orderItem = new OrderItem();
         orderItem.quantity = quantity;
 
         let basePrice = 0;
+        let product: Product | null = null;
 
         // === Handle Product and its Recipe ===
         if (item.productId) {
-          const product = await transactionalEntityManager.findOneBy(Product, { id: item.productId });
+          product = await transactionalEntityManager.findOneBy(Product, { id: item.productId });
           if (!product) {
             console.error(`[ERROR] Product not found: ID ${item.productId}`);
             throw new Error(`Product not found: ID ${item.productId}`);
@@ -123,18 +123,26 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
             relations: ["inventory"],
             cache: false,
           });
-          console.log(`[DEBUG] Drinks found: ${drinks.length}`);
+          console.log(`[DEBUG] Drinks found: ${drinks.length}, IDs: ${item.drinkIds}`);
 
           orderItem.drinks = drinks;
 
-          for (const drink of drinks) {
-            basePrice += drink.price * quantity;
+          // Only add drink price for non-combo items or standalone drinks
+          if (!item.productId || (product && product.category !== ProductCategory.COMBOS)) {
+            for (const drink of drinks) {
+              basePrice += drink.price * quantity;
+              console.log(`[DEBUG] Adding drink price: ${drink.name} (${drink.price}₼ x ${quantity})`);
+            }
+          } else {
+            console.log(`[DEBUG] Skipping drink price for combo: ${product?.name || 'N/A'}`);
+          }
 
+          // Deduct inventory for all drinks
+          for (const drink of drinks) {
             if (!drink.inventory) {
               console.error(`[ERROR] Drink ${drink.name} not linked to inventory`);
               throw new Error(`Drink ${drink.name} is not linked to any inventory item.`);
             }
-
             const inventoryItem = await transactionalEntityManager.findOneBy(Inventory, { id: drink.inventory.id });
             if (!inventoryItem) {
               console.error(`[ERROR] Inventory item not found for drink ID: ${drink.inventory.id}`);
@@ -157,8 +165,9 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
         totalPrice += basePrice;
         totalQuantity += quantity;
 
-        await transactionalEntityManager.save(orderItem);
+        console.log(`[DEBUG] OrderItem: Product=${product?.name || 'N/A'}, Quantity=${quantity}, BasePrice=${basePrice}₼, Addons=${item.addonIds?.length || 0}, Drinks=${item.drinkIds?.length || 0}`);
 
+        await transactionalEntityManager.save(orderItem);
         orderItems.push(orderItem);
       }
 
@@ -170,7 +179,18 @@ export const createOrder = async (orderData: { userId: number; items: any[] }) =
 
       const finalInventories = await transactionalEntityManager.find(Inventory, { cache: false });
       await transactionalEntityManager.save(order);
-      console.log(`[DEBUG] Saved order: ID ${order.id}, Total Price: ${totalPrice}, Total Quantity: ${totalQuantity}`);
+      console.log(`[DEBUG] Saved order: ID ${order.id}, Total Price: ${totalPrice}₼, Total Quantity: ${totalQuantity}`);
+    });
+
+    // Return the saved order
+    const savedOrder = await orderRepo.findOne({
+      where: { id: orderItems[0].order?.id },
+      relations: ["items", "items.product", "items.drinks", "items.addons", "createdBy"],
+    });
+    return savedOrder || await orderRepo.findOne({
+      where: { createdBy: { id: userId } },
+      order: { created_at: "DESC" },
+      relations: ["items", "items.product", "items.drinks", "items.addons", "createdBy"],
     });
   } catch (error) {
     console.error("[ERROR] Transaction failed:", error);

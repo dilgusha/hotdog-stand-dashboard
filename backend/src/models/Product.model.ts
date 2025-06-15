@@ -58,11 +58,11 @@ export class Product extends CommonEntity {
   category: ProductCategory;
 
   @ManyToMany(() => Inventory, (inventory) => inventory.products)
-  ingredients: Inventory[];  // Məhsulun tərkibində istifadə olunan maddələr
+  ingredients: Inventory[];  
 
   @ManyToMany(() => Addon, (addon) => addon.products, { eager: true })
   @JoinTable()
-  addons: Addon[];  // Məhsulun daxil olduğu əlavələr
+  addons: Addon[];
 
   @Column({ type: "text" , nullable: true})
   description: string; 
