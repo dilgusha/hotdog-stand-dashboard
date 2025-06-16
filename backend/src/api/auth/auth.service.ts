@@ -28,50 +28,51 @@ export class AuthService {
     });
   }
 
- async login(name: string, password: string) {
+  async login(name: string, password: string) {
 
-  const user = await User.findOne({ where: { name } }); 
+    const user = await User.findOne({ where: { name } });
 
-  if (!user) {
-    console.log("No user found with name:", name);
-    throw new Error("Неверное имя или пароль");
+    if (!user) {
+      console.log("No user found with name:", name);
+      throw new Error("Неверное имя или пароль");
+    }
+
+    let isValidPassword: boolean;
+    try {
+      isValidPassword = await bcrypt.compare(password, user.password);
+      console.log("🔑 Password valid:", isValidPassword);
+    } catch (err) {
+      console.error("Error during bcrypt.compare:", err);
+      throw new Error("Ошибка при проверке пароля");
+    }
+
+    if (!isValidPassword) {
+      console.log("Password does not match for user:", name);
+      throw new Error("Неверное имя или пароль");
+    }
+
+    const jwt_payload = { sub: user.id, role: user.role };
+    const jwtSecret = String(appConfig.JWT_SECRET);
+
+    let token: string;
+    try {
+      token = jwt.sign(jwt_payload, jwtSecret, {
+        algorithm: "HS256",
+        expiresIn: "1d",
+      });
+      console.log("JWT token generated");
+    } catch (err) {
+      console.error("Error during JWT sign:", err);
+      throw new Error("Ошибка при создании токена");
+    }
+
+    return {
+      id: user.id,
+      access_token: token,
+      name: user.name,
+      role: user.role,
+    };
   }
-
-  let isValidPassword: boolean;
-  try {
-    isValidPassword = await bcrypt.compare(password, user.password);
-    console.log("🔑 Password valid:", isValidPassword);
-  } catch (err) {
-    console.error("Error during bcrypt.compare:", err);
-    throw new Error("Ошибка при проверке пароля");
-  }
-
-  if (!isValidPassword) {
-    console.log("Password does not match for user:", name);
-    throw new Error("Неверное имя или пароль");
-  }
-
-  const jwt_payload = { sub: user.id, role: user.role };
-  const jwtSecret = String(appConfig.JWT_SECRET);
-
-  let token: string;
-  try {
-    token = jwt.sign(jwt_payload, jwtSecret, {
-      algorithm: "HS256",
-      expiresIn: "1d",
-    });
-    console.log("JWT token generated");
-  } catch (err) {
-    console.error("Error during JWT sign:", err);
-    throw new Error("Ошибка при создании токена");
-  }
-
-  return {
-    access_token: token,
-    name: user.name,
-    role: user.role,
-  };
-}
 
   async getUserInfo(userId: number) {
     const user = await User.findOne({

@@ -45,6 +45,7 @@ export default function AuthPage() {
     }
 
     const userData = {
+      id: data.id,
       name: data.name || loginData.name,
       role: data.role,
       access_token: data.access_token,

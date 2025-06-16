@@ -54,6 +54,7 @@ interface Recipe {
 }
 
 interface User {
+  id: number;
   name: string;
   access_token: string;
 }
@@ -85,6 +86,8 @@ export default function EmployeePage() {
       router.push("/");
       return;
     }
+      console.log("USER from localStorage:", JSON.parse(userData));
+
     setUser(JSON.parse(userData));
   }, [router]);
 
@@ -314,6 +317,7 @@ export default function EmployeePage() {
   };
 
   const submitOrder = async () => {
+
     if (!user) {
       toast({ title: "Ошибка", description: "Пользователь не найден", variant: "destructive" });
       return;
@@ -340,6 +344,7 @@ export default function EmployeePage() {
     }
 
     const orderPayload = {
+      userId: user.id,
       items: cart.map((item) => {
         if ("category" in item) {
           return {
@@ -360,6 +365,7 @@ export default function EmployeePage() {
         }
       }),
     };
+    console.log("📦 orderPayload being sent:", orderPayload);
 
     try {
       const res = await fetch("http://localhost:5000/api/order/make-order", {

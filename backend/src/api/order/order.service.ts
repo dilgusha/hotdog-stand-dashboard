@@ -12,6 +12,11 @@ import { ProductCategory } from "../../common/enum/product-category.enum";
 
 export const createOrder = async (orderData: { userId: number; items: any[] }) => {
   const { userId, items } = orderData;
+  console.log("✅ [createOrder] Gələn userId:", userId);
+  console.log("✅ [BACKEND] createOrder daxil oldu. Gələn userId:", userId);
+
+  console.log(`[DEBUG] Creating order for user ID: ${userId}`);
+  // console.log(`[DEBUG] Found user: ${user.name}, Role: ${user.role}`);
 
   const orderRepo = AppDataSource.getRepository(Order);
   const userRepo = AppDataSource.getRepository(User);
