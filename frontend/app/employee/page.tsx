@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +28,7 @@ interface MenuItem {
 }
 
 interface OrderItem extends MenuItem {
+  unitId: string; // Unique identifier for each unit
   quantity: number;
   addonIds?: number[];
   drinkIds?: number[];
@@ -39,6 +40,7 @@ interface CartDrink {
   name: string;
   price: number;
   quantity: number;
+  unitId: string; // Unique identifier for each drink unit
 }
 
 interface Inventory {
@@ -86,8 +88,7 @@ export default function EmployeePage() {
       router.push("/");
       return;
     }
-      console.log("USER from localStorage:", JSON.parse(userData));
-
+    console.log("USER from localStorage:", JSON.parse(userData));
     setUser(JSON.parse(userData));
   }, [router]);
 
@@ -199,42 +200,47 @@ export default function EmployeePage() {
       if ("category" in item) {
         const addonTotal = (item.addonIds || []).reduce((addSum, addonId) => {
           const addon = addons.find((a) => a.id === addonId);
-          return addSum + (addon?.price || 0) * (item.quantity || 1);
+          return addSum + (addon?.price || 0) * item.quantity;
         }, 0);
-        const sauceTotal = Object.values(item.sauceQuantities || {}).reduce((sum: number, qty: number) => {
+        const sauceTotal = Object.values(item.sauceQuantities || {}).reduce((sum, qty) => {
           const addonId = Object.keys(item.sauceQuantities || {}).find((key) => item.sauceQuantities![key] === qty);
           if (addonId) {
             const addon = addons.find((a) => a.id === parseInt(addonId));
-            return sum + (addon?.price || 0) * qty;
+            return sum + (addon?.price || 0) * qty * item.quantity;
           }
           return sum;
         }, 0);
-        // Exclude drink prices for combos
-        return sum + (item.price * (item.quantity || 1)) + addonTotal + sauceTotal;
+        return sum + (item.price * item.quantity) + addonTotal + sauceTotal;
       } else {
-        // CartDrink: Include drink price
-        return sum + (item.price * (item.quantity || 1));
+        return sum + (item.price * item.quantity);
       }
     }, 0);
     setTotal(newTotal);
   }, [cart, addons, drinks]);
 
   const addProductToCart = (item: MenuItem) => {
-    const existingItem = cart.find((cartItem) => "category" in cartItem && cartItem.id === item.id);
-    if (existingItem) {
-      setCart(
-        cart.map((cartItem) =>
-          "category" in cartItem && cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        )
-      );
+    if (item.category === ProductCategory.SIDES) {
+      const existingItem = cart.find((cartItem) => "category" in cartItem && cartItem.id === item.id);
+      if (existingItem) {
+        setCart(
+          cart.map((cartItem) =>
+            "category" in cartItem && cartItem.id === item.id
+              ? { ...cartItem, quantity: cartItem.quantity + 1 }
+              : cartItem
+          )
+        );
+      } else {
+        const unitId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        setCart([...cart, { ...item, unitId, quantity: 1, addonIds: [], drinkIds: undefined }]);
+      }
     } else {
-      setCart([...cart, { ...item, quantity: 1, addonIds: [], drinkIds: item.category === ProductCategory.COMBOS ? [] : undefined, sauceQuantities: {} }]);
+      const unitId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      setCart([...cart, { ...item, unitId, quantity: 1, addonIds: [], drinkIds: item.category === ProductCategory.COMBOS ? [] : undefined }]);
     }
   };
 
   const addDrinkToCart = (drink: Drink) => {
+    const unitId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     const existingDrink = cart.find((cartItem) => !("category" in cartItem) && cartItem.id === drink.id);
     if (existingDrink) {
       setCart(
@@ -245,29 +251,44 @@ export default function EmployeePage() {
         )
       );
     } else {
-      setCart([...cart, { id: drink.id, name: drink.name, price: drink.price, quantity: 1 }]);
+      setCart([...cart, { id: drink.id, name: drink.name, price: drink.price, quantity: 1, unitId }]);
     }
   };
 
-  const updateQuantity = (id: string | number, change: number, isDrink: boolean = false) => {
-    setCart(
-      cart
-        .map((item) => {
-          if ((isDrink ? !("category" in item) : "category" in item) && item.id === id) {
-            const newQuantity = Math.max(0, item.quantity + change);
-            return newQuantity === 0 ? null : { ...item, quantity: newQuantity };
-          }
-          return item;
-        })
-        .filter(Boolean) as (OrderItem | CartDrink)[]
-    );
+  const updateQuantity = (unitId: string, change: number, isDrink: boolean = false) => {
+    setCart((prevCart) => {
+      const itemIndex = prevCart.findIndex((item) => (isDrink ? !("category" in item) : "category" in item) && item.unitId === unitId);
+      if (itemIndex !== -1) {
+        const item = prevCart[itemIndex];
+        const newQuantity = Math.max(0, item.quantity + change);
+        if (newQuantity === 0) {
+          return prevCart.filter((_, i) => i !== itemIndex);
+        } else if (!isDrink && "category" in item && change > 0 && item.quantity === 1 && item.category !== ProductCategory.SIDES) {
+          // Create a new unit for hotdogs and combos when increasing from 1
+          const newUnitId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+          return [
+            ...prevCart.slice(0, itemIndex),
+            { ...item, quantity: 1, unitId: newUnitId },
+            { ...item, quantity: 1, unitId, addonIds: item.addonIds || [], drinkIds: item.drinkIds || [] },
+          ];
+        } else {
+          return prevCart.map((item, i) => i === itemIndex ? { ...item, quantity: newQuantity } : item);
+        }
+      }
+      return prevCart;
+    });
   };
 
-  const toggleAddon = (itemId: string, addonId: number) => {
+  const toggleAddon = (unitId: string, addonId: number) => {
     setCart(
       cart.map((item) => {
-        if ("category" in item && item.id === itemId) {
+        if ("category" in item && item.unitId === unitId) {
           const hasAddon = item.addonIds?.includes(addonId);
+          const addon = addons.find((a) => a.id === addonId);
+          if (addon && isNaN(addon.price)) {
+            console.error(`Invalid price for addon ${addonId}: ${addon.price}`);
+            return item;
+          }
           return {
             ...item,
             addonIds: hasAddon ? item.addonIds?.filter((id) => id !== addonId) : [...(item.addonIds || []), addonId],
@@ -278,10 +299,10 @@ export default function EmployeePage() {
     );
   };
 
-  const toggleDrink = (itemId: string, drinkId: number) => {
+  const toggleDrink = (unitId: string, drinkId: number) => {
     setCart(
       cart.map((item) => {
-        if ("category" in item && item.id === itemId && item.category === ProductCategory.COMBOS) {
+        if ("category" in item && item.unitId === unitId && item.category === ProductCategory.COMBOS) {
           const hasDrink = item.drinkIds?.includes(drinkId);
           const maxDrinks = item.name === "Meat Lover’s Double Pack" ? 2 : 1;
           if (hasDrink) {
@@ -302,10 +323,10 @@ export default function EmployeePage() {
     );
   };
 
-  const updateSauceQuantity = (itemId: string, addonId: number, qty: number) => {
+  const updateSauceQuantity = (unitId: string, addonId: number, qty: number) => {
     setCart(
       cart.map((item) => {
-        if ("category" in item && item.id === itemId) {
+        if ("category" in item && item.unitId === unitId) {
           return {
             ...item,
             sauceQuantities: { ...item.sauceQuantities, [addonId.toString()]: Math.max(0, qty) },
@@ -317,22 +338,31 @@ export default function EmployeePage() {
   };
 
   const submitOrder = async () => {
-
     if (!user) {
-      toast({ title: "Ошибка", description: "Пользователь не найден", variant: "destructive" });
+      toast({
+        title: "Ошибка",
+        description: "Пользователь не найден",
+        variant: "destructive",
+      });
       return;
     }
 
     if (cart.length === 0) {
-      toast({ title: "Корзина пуста", description: "Добавьте товары в заказ", variant: "destructive" });
+      toast({
+        title: "Корзина пуста",
+        description: "Добавьте товары в заказ",
+        variant: "destructive",
+      });
       return;
     }
 
-    // Validate combo drink selections
     for (const item of cart) {
       if ("category" in item && item.category === ProductCategory.COMBOS) {
         const requiredDrinks = item.name === "Meat Lover’s Double Pack" ? 2 : 1;
-        if (!item.drinkIds || item.drinkIds.length !== requiredDrinks * item.quantity) {
+        if (
+          !item.drinkIds ||
+          item.drinkIds.length !== requiredDrinks * item.quantity
+        ) {
           toast({
             title: "Неполный заказ",
             description: `Для "${item.name}" требуется выбрать ${requiredDrinks} напитка на каждый товар.`,
@@ -349,18 +379,24 @@ export default function EmployeePage() {
         if ("category" in item) {
           return {
             productId: parseInt(item.id),
-            quantity: item.quantity,
-            addonIds: item.addonIds || [],
-            drinkIds: item.drinkIds || [],
-            ingredientIds: Object.keys(item.sauceQuantities || {}).map((id) => parseInt(id)),
+            units: [
+              {
+                quantity: item.quantity,
+                addonIds: item.addonIds || [],
+                drinkIds: item.drinkIds || [],
+              },
+            ],
           };
         } else {
           return {
             productId: null,
-            quantity: item.quantity,
-            addonIds: [],
-            drinkIds: [item.id],
-            ingredientIds: [],
+            units: [
+              {
+                quantity: item.quantity,
+                addonIds: [],
+                drinkIds: [item.id],
+              },
+            ],
           };
         }
       }),
@@ -386,7 +422,9 @@ export default function EmployeePage() {
 
       toast({
         title: "Успешно",
-        description: `Заказ создан на сумму ${(result.price || total).toFixed(2)}₼`,
+        description: `Заказ создан на сумму ${(result.price || total).toFixed(
+          2
+        )}₼`,
       });
 
       setCart([]);
@@ -551,94 +589,36 @@ export default function EmployeePage() {
                       <div className="space-y-4">
                         {cart.map((item) => (
                           <div
-                            key={item.id}
+                            key={item.unitId}
                             className="border-b pb-4 last:border-b-0"
                           >
                             <div className="flex justify-between items-start mb-2">
                               <h4 className="font-medium text-sm">
-                                {item.name}
+                                {(() => {
+                                  if ("category" in item && (item.category === ProductCategory.HOTDOG || item.category === ProductCategory.COMBOS)) {
+                                    const sameProductItems = cart.filter((i) => "category" in i && i.id === item.id && i.category === item.category);
+                                    const index = sameProductItems.findIndex((i) => i.unitId === item.unitId) + 1;
+                                    return `${item.name} #${index}`;
+                                  }
+                                  return item.name; // No numbering for sides and drinks
+                                })()}
                               </h4>
                               <span className="font-bold text-green-600">
                                 {(() => {
-                                  console.log("Item:", item);
-                                  console.log("Addons State:", addons);
                                   if (!("category" in item)) {
-                                    const drinkTotal =
-                                      (Number(item.price) || 0) *
-                                      (item.quantity || 1);
-                                    console.log("Drink Total:", drinkTotal);
-                                    return drinkTotal.toFixed(2);
+                                    return (Number(item.price) * item.quantity).toFixed(2);
                                   }
-                                  const originalItem = menuItems.find(
-                                    (m) => m.id === item.id
-                                  );
-                                  const basePrice =
-                                    Number(originalItem?.price) ||
-                                    Number(item.price) ||
-                                    0;
-                                  const quantity = item.quantity || 1;
-                                  console.log(
-                                    "Base Price from Menu:",
-                                    originalItem?.price,
-                                    "From Item:",
-                                    basePrice,
-                                    "Quantity:",
-                                    quantity
-                                  );
-                                  const addonTotal = (
-                                    item.addonIds || []
-                                  ).reduce((sum, id) => {
-                                    const addon = addons.find(
-                                      (a) => a.id === id
-                                    );
-                                    const addonPrice =
-                                      Number(addon?.price) || 0;
-                                    console.log(
-                                      `Addon ID ${id} found:`,
-                                      addon,
-                                      "Price:",
-                                      addonPrice
-                                    );
-                                    return sum + addonPrice;
-                                  }, 0);
-                                  console.log("Addon Total:", addonTotal);
-                                  const sauceTotal = Object.values(
-                                    item.sauceQuantities || {}
-                                  ).reduce((sum, qty) => {
-                                    const addonId = Object.keys(
-                                      item.sauceQuantities || {}
-                                    ).find(
-                                      (key) =>
-                                        item.sauceQuantities![key] === qty
-                                    );
+                                  const basePrice = Number(item.price) * item.quantity;
+                                  const addonTotal = (item.addonIds || []).reduce((sum, id) => sum + (addons.find(a => a.id === id)?.price || 0) * item.quantity, 0);
+                                  const sauceTotal = Object.values(item.sauceQuantities || {}).reduce((sum, qty) => {
+                                    const addonId = Object.keys(item.sauceQuantities || {}).find(key => item.sauceQuantities![key] === qty);
                                     if (addonId) {
-                                      const addon = addons.find(
-                                        (a) => a.id === parseInt(addonId)
-                                      );
-                                      const addonPrice =
-                                        Number(addon?.price) || 0;
-                                      console.log(
-                                        `Sauce Addon ID ${addonId} found:`,
-                                        addon,
-                                        "Price:",
-                                        addonPrice,
-                                        "Qty:",
-                                        qty
-                                      );
-                                      return sum + addonPrice * qty;
+                                      const addon = addons.find(a => a.id === parseInt(addonId));
+                                      return sum + (addon?.price || 0) * qty * item.quantity;
                                     }
                                     return sum;
                                   }, 0);
-                                  console.log("Sauce Total:", sauceTotal);
-                                  const subtotal =
-                                    Number(basePrice) +
-                                    Number(addonTotal) +
-                                    Number(sauceTotal) * Number(quantity);
-                                  console.log(
-                                    "Subtotal before toFixed:",
-                                    subtotal
-                                  );
-                                  return subtotal.toFixed(2); // Remove isNaN fallback since we enforce numbers
+                                  return (basePrice + addonTotal + sauceTotal).toFixed(2);
                                 })()}
                                 ₼
                               </span>
@@ -647,91 +627,57 @@ export default function EmployeePage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.id,
-                                    -1,
-                                    !("category" in item)
-                                  )
-                                }
+                                onClick={() => updateQuantity(item.unitId, -1, !("category" in item))}
                                 disabled={isLoading}
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="font-medium">
-                                {item.quantity}
-                              </span>
+                              <span className="font-medium">{item.quantity}</span>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.id,
-                                    1,
-                                    !("category" in item)
-                                  )
-                                }
+                                onClick={() => updateQuantity(item.unitId, 1, !("category" in item))}
                                 disabled={isLoading}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
-                            {"category" in item &&
-                              item.category === ProductCategory.HOTDOG && (
-                                <div className="space-y-1">
-                                  <p className="text-xs font-medium text-gray-700">
-                                    Дополнения:
-                                  </p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {addons.map((addon) => (
-                                      <Badge
-                                        key={addon.id}
-                                        variant={
-                                          item.addonIds?.includes(addon.id)
-                                            ? "default"
-                                            : "outline"
-                                        }
-                                        className="cursor-pointer text-xs"
-                                        onClick={() =>
-                                          toggleAddon(item.id, addon.id)
-                                        }
-                                      >
-                                        {addon.name} (+{addon.price}₼)
-                                      </Badge>
-                                    ))}
-                                  </div>
+                            {"category" in item && item.category === ProductCategory.HOTDOG && (
+                              <div className="space-y-1">
+                                <p className="text-xs font-medium text-gray-700">Дополнения:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {addons.map((addon) => (
+                                    <Badge
+                                      key={addon.id}
+                                      variant={item.addonIds?.includes(addon.id) ? "default" : "outline"}
+                                      className="cursor-pointer text-xs"
+                                      onClick={() => toggleAddon(item.unitId, addon.id)}
+                                    >
+                                      {addon.name} (+{addon.price}₼)
+                                    </Badge>
+                                  ))}
                                 </div>
-                              )}
-                            {"category" in item &&
-                              item.category === ProductCategory.COMBOS && (
-                                <div className="space-y-1">
-                                  <p className="text-xs font-medium text-gray-700">
-                                    Напитки (требуется{" "}
-                                    {item.name === "Meat Lover’s Double Pack"
-                                      ? 2
-                                      : 1}
-                                    , включены в стоимость):
-                                  </p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {drinks.map((drink) => (
-                                      <Badge
-                                        key={drink.id}
-                                        variant={
-                                          item.drinkIds?.includes(drink.id)
-                                            ? "default"
-                                            : "outline"
-                                        }
-                                        className="cursor-pointer text-xs"
-                                        onClick={() =>
-                                          toggleDrink(item.id, drink.id)
-                                        }
-                                      >
-                                        {drink.name}
-                                      </Badge>
-                                    ))}
-                                  </div>
+                              </div>
+                            )}
+                            {"category" in item && item.category === ProductCategory.COMBOS && (
+                              <div className="space-y-1">
+                                <p className="text-xs font-medium text-gray-700">
+                                  Напитки (требуется {item.name === "Meat Lover’s Double Pack" ? 2 : 1}, включены в стоимость):
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {drinks.map((drink) => (
+                                    <Badge
+                                      key={drink.id}
+                                      variant={item.drinkIds?.includes(drink.id) ? "default" : "outline"}
+                                      className="cursor-pointer text-xs"
+                                      onClick={() => toggleDrink(item.unitId, drink.id)}
+                                    >
+                                      {drink.name}
+                                    </Badge>
+                                  ))}
                                 </div>
-                              )}
+                              </div>
+                            )}
                           </div>
                         ))}
                         <Separator />
@@ -762,9 +708,9 @@ export default function EmployeePage() {
                 <CardTitle className="flex items-center">
                   <Package className="h-5 w-5 mr-2" /> Запасы ингредиентов
                 </CardTitle>
-                <CardDescription>
+                <p>
                   Текущие остатки ингредиентов (только просмотр)
-                </CardDescription>
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

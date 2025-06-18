@@ -152,7 +152,7 @@ export const createOrder = async (orderData: {
                       id: inventoryItem.id,
                     });
                   inventoryItem.quantity = newQuantity;
-                  basePrice += addon.price; // Add addon price once per unit, not multiplied by quantity
+                  basePrice += addon.price * quantity; // Multiply addon price by quantity for each unit
                 } else {
                   console.error(
                     `[ERROR] Insufficient inventory: ${inventoryItem.quantity} ${addon.name}, requires ${quantityToDeduct}`
@@ -246,12 +246,12 @@ export const createOrder = async (orderData: {
             }
           }
 
-          orderItem.price = basePrice;
-          totalPrice += basePrice;
+          orderItem.price = parseFloat(basePrice.toFixed(2)); // Ensure price is a number with 2 decimal places
+          totalPrice += orderItem.price;
           totalQuantity += quantity;
 
           console.log(
-            `[DEBUG] OrderItem: Product=${product?.name || "N/A"}, Quantity=${quantity}, BasePrice=${basePrice}₼, Addons=${addonIds?.length || 0}, Drinks=${drinkIds?.length || 0}`
+            `[DEBUG] OrderItem: Product=${product?.name || "N/A"}, Quantity=${quantity}, BasePrice=${orderItem.price}₼, Addons=${addonIds?.length || 0}, Drinks=${drinkIds?.length || 0}`
           );
 
           await transactionalEntityManager.save(orderItem);
