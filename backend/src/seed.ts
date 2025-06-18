@@ -204,6 +204,7 @@ const existingDrinksCount = await AppDataSource.getRepository(Drink).count(); //
                 const product = new Product();
                 product.name = pdata.name;
                 product.price = pdata.price;
+                product.description = pdata.description;
                 product.category = pdata.category;
                 await productRepository.save(product);
                 for (const ing of pdata.ingredients) {

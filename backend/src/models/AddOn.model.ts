@@ -26,8 +26,6 @@ import { Inventory } from "./Inventory.model";
 
 @Entity({ name: "addons" })
 export class Addon extends CommonEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
 
   @Column()
   name: string;  

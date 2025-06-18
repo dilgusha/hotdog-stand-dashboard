@@ -5,9 +5,6 @@ import { CommonEntity } from "./Common.model";
 
 @Entity({ name: "inventory" })
 export class Inventory extends CommonEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
   @Column()
   ingredient: string;  
 

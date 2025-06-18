@@ -424,10 +424,14 @@ export default function EmployeePage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-semibold">🌭 Хот-дог Стенд</h1>
-              <Badge variant="secondary" className="ml-3">Сотрудник</Badge>
+              <Badge variant="secondary" className="ml-3">
+                Сотрудник
+              </Badge>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Привет, {user.name}!</span>
+              <span className="text-sm text-gray-600">
+                Привет, {user.name}!
+              </span>
               <Button variant="outline" size="sm" onClick={logout}>
                 <LogOut className="h-4 w-4 mr-2" /> Выйти
               </Button>
@@ -456,19 +460,32 @@ export default function EmployeePage() {
                           menuItems
                             .filter((item) => item.category === category)
                             .map((item) => (
-                              <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                              <div
+                                key={item.id}
+                                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                              >
                                 <div className="flex justify-between items-start mb-2">
                                   <h3 className="font-medium">{item.name}</h3>
-                                  <span className="font-bold text-green-600">{item.price}₼</span>
+                                  <span className="font-bold text-green-600">
+                                    {item.price}₼
+                                  </span>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                                <Button onClick={() => addProductToCart(item)} size="sm" className="w-full">
+                                <p className="text-sm text-gray-600 mb-3">
+                                  {item.description}
+                                </p>
+                                <Button
+                                  onClick={() => addProductToCart(item)}
+                                  size="sm"
+                                  className="w-full"
+                                >
                                   <Plus className="h-4 w-4 mr-2" /> Добавить
                                 </Button>
                               </div>
                             ))
                         ) : (
-                          <p className="text-gray-500 text-center">Нет доступных продуктов</p>
+                          <p className="text-gray-500 text-center">
+                            Нет доступных продуктов
+                          </p>
                         )}
                       </div>
                     </CardContent>
@@ -482,19 +499,32 @@ export default function EmployeePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {drinks.length > 0 ? (
                         drinks.map((drink) => (
-                          <div key={drink.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div
+                            key={drink.id}
+                            className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                          >
                             <div className="flex justify-between items-start mb-2">
                               <h3 className="font-medium">{drink.name}</h3>
-                              <span className="font-bold text-green-600">{drink.price}₼</span>
+                              <span className="font-bold text-green-600">
+                                {drink.price}₼
+                              </span>
                             </div>
-                            <p className="text-sm text-gray-600 mb-3">{drink.description}</p>
-                            <Button onClick={() => addDrinkToCart(drink)} size="sm" className="w-full">
+                            <p className="text-sm text-gray-600 mb-3">
+                              {drink.description}
+                            </p>
+                            <Button
+                              onClick={() => addDrinkToCart(drink)}
+                              size="sm"
+                              className="w-full"
+                            >
                               <Plus className="h-4 w-4 mr-2" /> Добавить
                             </Button>
                           </div>
                         ))
                       ) : (
-                        <p className="text-gray-500 text-center">Нет доступных напитков</p>
+                        <p className="text-gray-500 text-center">
+                          Нет доступных напитков
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -510,35 +540,106 @@ export default function EmployeePage() {
                   </CardHeader>
                   <CardContent>
                     {isLoading && cart.length > 0 ? (
-                      <p className="text-gray-500 text-center py-4">Обработка заказа...</p>
+                      <p className="text-gray-500 text-center py-4">
+                        Обработка заказа...
+                      </p>
                     ) : cart.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">Корзина пуста</p>
+                      <p className="text-gray-500 text-center py-4">
+                        Корзина пуста
+                      </p>
                     ) : (
                       <div className="space-y-4">
                         {cart.map((item) => (
-                          <div key={item.id} className="border-b pb-4 last:border-b-0">
+                          <div
+                            key={item.id}
+                            className="border-b pb-4 last:border-b-0"
+                          >
                             <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-medium text-sm">{item.name}</h4>
+                              <h4 className="font-medium text-sm">
+                                {item.name}
+                              </h4>
                               <span className="font-bold text-green-600">
-                                {("category" in item
-                                  ? (item.price +
-                                    (item.addonIds?.reduce(
-                                      (sum, id) => sum + (addons.find((a) => a.id === id)?.price || 0),
-                                      0
-                                    ) || 0) +
-                                    Object.values(item.sauceQuantities || {}).reduce((sum, qty) => {
-                                      const addonId = Object.keys(item.sauceQuantities || {}).find(
-                                        (key) => item.sauceQuantities![key] === qty
+                                {(() => {
+                                  console.log("Item:", item);
+                                  console.log("Addons State:", addons);
+                                  if (!("category" in item)) {
+                                    const drinkTotal =
+                                      (Number(item.price) || 0) *
+                                      (item.quantity || 1);
+                                    console.log("Drink Total:", drinkTotal);
+                                    return drinkTotal.toFixed(2);
+                                  }
+                                  const originalItem = menuItems.find(
+                                    (m) => m.id === item.id
+                                  );
+                                  const basePrice =
+                                    Number(originalItem?.price) ||
+                                    Number(item.price) ||
+                                    0;
+                                  const quantity = item.quantity || 1;
+                                  console.log(
+                                    "Base Price from Menu:",
+                                    originalItem?.price,
+                                    "From Item:",
+                                    basePrice,
+                                    "Quantity:",
+                                    quantity
+                                  );
+                                  const addonTotal = (
+                                    item.addonIds || []
+                                  ).reduce((sum, id) => {
+                                    const addon = addons.find(
+                                      (a) => a.id === id
+                                    );
+                                    const addonPrice =
+                                      Number(addon?.price) || 0;
+                                    console.log(
+                                      `Addon ID ${id} found:`,
+                                      addon,
+                                      "Price:",
+                                      addonPrice
+                                    );
+                                    return sum + addonPrice;
+                                  }, 0);
+                                  console.log("Addon Total:", addonTotal);
+                                  const sauceTotal = Object.values(
+                                    item.sauceQuantities || {}
+                                  ).reduce((sum, qty) => {
+                                    const addonId = Object.keys(
+                                      item.sauceQuantities || {}
+                                    ).find(
+                                      (key) =>
+                                        item.sauceQuantities![key] === qty
+                                    );
+                                    if (addonId) {
+                                      const addon = addons.find(
+                                        (a) => a.id === parseInt(addonId)
                                       );
-                                      if (addonId) {
-                                        const addon = addons.find((a) => a.id === parseInt(addonId));
-                                        return sum + (addon?.price || 0) * qty;
-                                      }
-                                      return sum;
-                                    }, 0)) *
-                                  item.quantity
-                                  : item.price * item.quantity
-                                ).toFixed(2)}
+                                      const addonPrice =
+                                        Number(addon?.price) || 0;
+                                      console.log(
+                                        `Sauce Addon ID ${addonId} found:`,
+                                        addon,
+                                        "Price:",
+                                        addonPrice,
+                                        "Qty:",
+                                        qty
+                                      );
+                                      return sum + addonPrice * qty;
+                                    }
+                                    return sum;
+                                  }, 0);
+                                  console.log("Sauce Total:", sauceTotal);
+                                  const subtotal =
+                                    Number(basePrice) +
+                                    Number(addonTotal) +
+                                    Number(sauceTotal) * Number(quantity);
+                                  console.log(
+                                    "Subtotal before toFixed:",
+                                    subtotal
+                                  );
+                                  return subtotal.toFixed(2); // Remove isNaN fallback since we enforce numbers
+                                })()}
                                 ₼
                               </span>
                             </div>
@@ -547,66 +648,98 @@ export default function EmployeePage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-                                  updateQuantity(item.id, -1, !("category" in item))
+                                  updateQuantity(
+                                    item.id,
+                                    -1,
+                                    !("category" in item)
+                                  )
                                 }
                                 disabled={isLoading}
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="font-medium">{item.quantity}</span>
+                              <span className="font-medium">
+                                {item.quantity}
+                              </span>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-                                  updateQuantity(item.id, 1, !("category" in item))
+                                  updateQuantity(
+                                    item.id,
+                                    1,
+                                    !("category" in item)
+                                  )
                                 }
                                 disabled={isLoading}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
-                            {"category" in item && item.category === ProductCategory.HOTDOG && (
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium text-gray-700">Дополнения:</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {addons.map((addon) => (
-                                    <Badge
-                                      key={addon.id}
-                                      variant={item.addonIds?.includes(addon.id) ? "default" : "outline"}
-                                      className="cursor-pointer text-xs"
-                                      onClick={() => toggleAddon(item.id, addon.id)}
-                                    >
-                                      {addon.name} (+{addon.price}₼)
-                                    </Badge>
-                                  ))}
+                            {"category" in item &&
+                              item.category === ProductCategory.HOTDOG && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-gray-700">
+                                    Дополнения:
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {addons.map((addon) => (
+                                      <Badge
+                                        key={addon.id}
+                                        variant={
+                                          item.addonIds?.includes(addon.id)
+                                            ? "default"
+                                            : "outline"
+                                        }
+                                        className="cursor-pointer text-xs"
+                                        onClick={() =>
+                                          toggleAddon(item.id, addon.id)
+                                        }
+                                      >
+                                        {addon.name} (+{addon.price}₼)
+                                      </Badge>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            {"category" in item && item.category === ProductCategory.COMBOS && (
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium text-gray-700">
-                                  Напитки (требуется {item.name === "Meat Lover’s Double Pack" ? 2 : 1}, включены в стоимость):
-                                </p>
-                                <div className="flex flex-wrap gap-1">
-                                  {drinks.map((drink) => (
-                                    <Badge
-                                      key={drink.id}
-                                      variant={item.drinkIds?.includes(drink.id) ? "default" : "outline"}
-                                      className="cursor-pointer text-xs"
-                                      onClick={() => toggleDrink(item.id, drink.id)}
-                                    >
-                                      {drink.name}
-                                    </Badge>
-                                  ))}
+                              )}
+                            {"category" in item &&
+                              item.category === ProductCategory.COMBOS && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-gray-700">
+                                    Напитки (требуется{" "}
+                                    {item.name === "Meat Lover’s Double Pack"
+                                      ? 2
+                                      : 1}
+                                    , включены в стоимость):
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {drinks.map((drink) => (
+                                      <Badge
+                                        key={drink.id}
+                                        variant={
+                                          item.drinkIds?.includes(drink.id)
+                                            ? "default"
+                                            : "outline"
+                                        }
+                                        className="cursor-pointer text-xs"
+                                        onClick={() =>
+                                          toggleDrink(item.id, drink.id)
+                                        }
+                                      >
+                                        {drink.name}
+                                      </Badge>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
                           </div>
                         ))}
                         <Separator />
                         <div className="flex justify-between items-center font-bold text-lg">
                           <span>Итого:</span>
-                          <span className="text-green-600">{total.toFixed(2)}₼</span>
+                          <span className="text-green-600">
+                            {total.toFixed(2)}₼
+                          </span>
                         </div>
                         <Button
                           onClick={submitOrder}
@@ -629,65 +762,91 @@ export default function EmployeePage() {
                 <CardTitle className="flex items-center">
                   <Package className="h-5 w-5 mr-2" /> Запасы ингредиентов
                 </CardTitle>
-                <CardDescription>Текущие остатки ингредиентов (только просмотр)</CardDescription>
+                <CardDescription>
+                  Текущие остатки ингредиентов (только просмотр)
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {ingredients.length > 0 ? (
                     Object.values(
                       ingredients.reduce((acc, ingredient) => {
-                        const recipeMatch = recipes.find((r) => r.ingredient.ingredient === ingredient.ingredient);
+                        const recipeMatch = recipes.find(
+                          (r) =>
+                            r.ingredient.ingredient === ingredient.ingredient
+                        );
                         const isGrams = (recipeMatch?.quantityNeeded || 0) > 10;
                         const quantityNeededText = recipeMatch
-                          ? `${recipeMatch.quantityNeeded} ${isGrams ? "грам" : "шт"}`
+                          ? `${recipeMatch.quantityNeeded} ${
+                              isGrams ? "грам" : "шт"
+                            }`
                           : "N/A";
-                        const quantityText = `${ingredient.quantity} ${isGrams ? "грам" : "шт"}`;
+                        const quantityText = `${ingredient.quantity} ${
+                          isGrams ? "грам" : "шт"
+                        }`;
 
                         if (!acc[ingredient.ingredient]) {
                           acc[ingredient.ingredient] = {
                             id: ingredient.id,
                             ingredient: ingredient.ingredient,
                             quantity: ingredient.quantity,
-                            quantityNeeded: recipeMatch ? recipeMatch.quantityNeeded : 0,
+                            quantityNeeded: recipeMatch
+                              ? recipeMatch.quantityNeeded
+                              : 0,
                           };
                         } else {
-                          acc[ingredient.ingredient].quantity += ingredient.quantity;
-                          acc[ingredient.ingredient].quantityNeeded += recipeMatch?.quantityNeeded || 0;
+                          acc[ingredient.ingredient].quantity +=
+                            ingredient.quantity;
+                          acc[ingredient.ingredient].quantityNeeded +=
+                            recipeMatch?.quantityNeeded || 0;
                         }
                         return acc;
                       }, {} as { [key: string]: { id: string; ingredient: string; quantity: number; quantityNeeded: number } })
                     ).map((aggregatedIngredient) => {
                       const isGrams = aggregatedIngredient.quantityNeeded > 10;
-                      const quantityNeededText = `${aggregatedIngredient.quantityNeeded} ${isGrams ? "грам" : "шт"}`;
-                      const quantityText = `${aggregatedIngredient.quantity} ${isGrams ? "грам" : "шт"}`;
+                      const quantityNeededText = `${
+                        aggregatedIngredient.quantityNeeded
+                      } ${isGrams ? "грам" : "шт"}`;
+                      const quantityText = `${aggregatedIngredient.quantity} ${
+                        isGrams ? "грам" : "шт"
+                      }`;
 
                       return (
-                        <div key={aggregatedIngredient.id} className="border rounded-lg p-4">
-                          <h3 className="font-medium mb-3">{aggregatedIngredient.ingredient}</h3>
+                        <div
+                          key={aggregatedIngredient.id}
+                          className="border rounded-lg p-4"
+                        >
+                          <h3 className="font-medium mb-3">
+                            {aggregatedIngredient.ingredient}
+                          </h3>
                           <div className="mb-3">
-                            <span className="text-lg font-medium">{quantityText}</span>
+                            <span className="text-lg font-medium">
+                              {quantityText}
+                            </span>
                           </div>
                           <Badge
                             variant={
                               aggregatedIngredient.quantity > 10
                                 ? "default"
                                 : aggregatedIngredient.quantity > 5
-                                  ? "secondary"
-                                  : "destructive"
+                                ? "secondary"
+                                : "destructive"
                             }
                             className="w-full justify-center"
                           >
                             {aggregatedIngredient.quantity > 10
                               ? "В наличии"
                               : aggregatedIngredient.quantity > 5
-                                ? "Мало"
-                                : "Критично мало"}
+                              ? "Мало"
+                              : "Критично мало"}
                           </Badge>
                         </div>
                       );
                     })
                   ) : (
-                    <p className="text-gray-500 text-center">Нет данных об ингредиентах</p>
+                    <p className="text-gray-500 text-center">
+                      Нет данных об ингредиентах
+                    </p>
                   )}
                 </div>
               </CardContent>

@@ -34,8 +34,6 @@ import { Drink } from "./Drink.model";
 
 @Entity({ name: "order_items" })
 export class OrderItem extends CommonEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
 
   @Column("decimal", { precision: 6, scale: 2 })
   price: number;

@@ -45,8 +45,6 @@ import { ProductCategory } from "../common/enum/product-category.enum";
 
 @Entity({ name: "products" })
 export class Product extends CommonEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
 
   @Column()
   name: string;
